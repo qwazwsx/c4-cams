@@ -12,7 +12,7 @@ required? | query parameter | use
 --------- |---------------  | ---
 ❌ | delay | delay in ms for sending the text 
 
-##### example
+###### example
 
 `GET /api/ping?delay=5000`
 
@@ -27,7 +27,7 @@ required? | query parameter | use
 ✔️ | type | type of search to preform. `0` means to search by the camera objects UUID. `1` means to search by the short url. `2` means to search by the full url
 ✔️ | query | what to search for, string
 
-##### example
+###### example
 
 the following 3 API requests all return the same thing
 
