@@ -101,11 +101,33 @@ They all return the same camera object
 "views":37}
 ```
 
-## 3. `GET /api/top`
+##3. `GET /api/random`
+
+return a random camera object
+
+*no query params*
+
+###### example
+
+`GET /api/random`
+
+```JSON
+{
+  "_id":"57fc3f3b-d230-41d4-b8ef-695da192a893",
+  "url":"82.26.242.70:60001",
+  "urlFull":"http://82.26.242.70:60001/cgi-bin/snapshot.cgi?chn=0&amp;u=admin&amp;p=&amp;q=0/",
+  "upvotes":0,
+  "downvotes":0,
+  "reports":0,
+  "views":0
+ }
+```
+
+## 4. `GET /api/top`
 
 returns an array of camera objects for the top 50 highest rated posts
 
-example:
+###### example
 
 
 `GET /api/top`
@@ -136,7 +158,7 @@ example:
 
 ```
 
-## 4. `POST /api/add`
+## 5. `POST /api/add`
 
 add a camera to the main list of cams. It will be available from `/api/random` and can show in `/api/top`
 
@@ -160,7 +182,7 @@ returns the newly created camera object's UUID
 }
 ```
 
-## 5. `POST /api/upvote`
+## 6. `POST /api/upvote`
 
 upvotes a given post
 
@@ -174,7 +196,7 @@ required? | query parameter | use
 
 this will upvote the post with the uuid of `d475a62d-b718-41ff-b427-911f71d33755`
 
-## 6. `POST /api/downvote`
+## 7. `POST /api/downvote`
 
 upvotes a given post
 
@@ -188,7 +210,7 @@ required? | query parameter | use
 
 this will downvote the post with the uuid of `d475a62d-b718-41ff-b427-911f71d33755`
 
-## 7. `POST /api/report`
+## 8. `POST /api/report`
 
 report a given post for being a dead link or inappropriate content 
 
