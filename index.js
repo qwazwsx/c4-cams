@@ -18,9 +18,167 @@ var mongoUrl = "mongodb://localhost:27017/";			//location of mongoDB server
 var uuidv4 = require('uuid/v4');						//generates uuid's for documents
 var decay = require('decay');							//get decay for sorting by up&down votes
 var wilsonScore = decay.wilsonScore();					//use wilson type of scoring (reddit comments "best" sorting)
-var sortBy = require('sort-array')						//helps when sorting arrays of posts
+var sortBy = require('sort-array');						//helps when sorting arrays of posts
+var express = require('express');						//get express for API
+var RateLimit = require('express-rate-limit');			//get ratelimiter for express
+var app = express();									//get express server
 var views = [];											//tracks users for view counts
+var reports = [];										//tracks users for reports
 var sortedPosts = []									//list of sorted posts, updates every 10 min
+var port = process.env.PORT || 3000;        			// set our port (defaults to 8081 if env var isnt set)
+
+
+
+
+//setup ratelimiting
+app.enable('trust proxy');
+
+var apiLimiter = new RateLimit({
+  windowMs: 40*1000, // 1 minute
+  max: 120,
+  delayMs: 0 // disabled
+});
+
+app.use('/api/', apiLimiter);
+
+
+
+//responds pong
+//delay: ms to delay response
+app.get('/api/ping', function (req, res) {
+	
+	setTimeout(function(){res.send('pong')},req.query.delay);
+
+
+});
+
+//query params
+//type: 0 - search by camera object uuid, 1 - search by short url, 2 - search by full url
+//query: what you are seaching for
+app.post('/api/find', function (req, res) {
+	
+	if (req.query.query !== undefined){
+	
+		if (req.query.type == 0){
+			search('cams',2,{ _id: req.query.query}).then(function(send){res.send(send[0])});
+		}else{
+			if (req.query.type == 1){
+				search('cams',2,{ url: req.query.query }).then(function(send){res.send(send)});
+			}else{
+				if (req.query.type == 2){
+					search('cams',2,{ urlFull: req.query.query }).then(function(send){res.send(send)});
+				}else{
+					res.send({error: 'parameter \'type\' not set correctly', code: 0});
+				}
+			}
+		}
+	
+	}else{
+		res.send({error: 'parameter \'query\' not set correctly', code: 1});
+	}
+});
+
+
+
+
+
+
+//query params
+//uuid
+//errors
+//0 - you have already reported this camera
+app.post('/api/report', function (req, res) {
+	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;	
+	report(req.query.uuid,ip).then(function(send){
+		
+		res.send(send);
+		
+	});
+
+});
+
+
+//query params
+//uuid: uuid of a camera object
+//errors
+//0 - uuid doesnt exist
+//1 - user already upvoted
+app.post('/api/upvote', function (req, res) {
+	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;	
+	upvote(req.query.uuid,ip).then(function(data){
+		res.send(data);
+		if (data.error !== undefined){
+			console.log(data);
+		};
+	});
+});
+
+//query params
+//uuid: uuid of a camera object
+//errors
+//0 - uuid doesnt exist
+//1 - user already upvoted
+app.post('/api/downvote', function (req, res) {
+	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;	
+	downvote(req.query.uuid,ip).then(function(data){
+		res.send(data);
+		if (data.error !== undefined){
+			console.log(data);
+		}
+	});
+});
+
+
+
+
+//returns a random camera object
+app.get('/api/random', function (req, res) {
+	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;
+	
+	//req.
+	
+	MongoClient.connect(mongoUrl, function(err, db) {
+		if (err) throw err;
+		var dbo = db.db("c4-cams");
+		dbo.collection('camera_list').aggregate([{ $sample: { size: 1 } }]).toArray(function(err, data) {
+			if (err) throw err;
+			
+			
+			
+			load(data[0].url,ip).then(function(data){
+				res.send(data);
+			});;
+			
+			
+			
+			db.close();
+		});
+	});	
+	
+});
+
+
+
+
+
+
+
+
+
+
+app.use('/', express.static('static'))
+
+app.listen(3000, function(){
+	console.log('[INFO] server running on port '+port);
+});
+
+
+
+
+
+
+
+
 
 
 
@@ -33,7 +191,7 @@ function sort(){
 	
 	MongoClient.connect(mongoUrl, function(err, db) {
 		if (err) throw err;
-		var dbo = db.db("c4-roulette");
+		var dbo = db.db("c4-cams");
 		dbo.collection('cams').find({}).toArray(function(err, data) {
 			if (err) throw err;
 			
@@ -78,12 +236,29 @@ function sort(){
 
 
 //report a post as dead
-//yeah its not limited but it shouldn't be a problem
-function report(uuid){
+//uuid: uuid of cam
+//ip: ip of requester
+function report(uuid,ip){
 	
-	update('cams', { _id:uuid }, { $inc: { reports: 1 } } );
-}
+	return new Promise(function(resolve,reject){
 
+	//if report isnt already in temp array
+	if (reports[uuid] == undefined){
+		reports[uuid] = [];
+	};
+	
+	//if ip hasnt already reported 
+	if (reports[uuid].indexOf(ip) == -1){
+		update('cams', { _id:uuid }, { $inc: { reports: 1 } } );
+		reports[uuid].push(ip);
+	}else{
+		resolve({error: 'you have already reported this camera', code: 0});
+		
+	}
+			
+	});	
+			
+}
 
 
 //upvote a post
@@ -91,31 +266,44 @@ function report(uuid){
 //ip: ip of requester
 function upvote(uuid,ip){
 	
+	return new Promise(function(resolve,reject){
+	
+	
 	//search in vote records for upvotes on this ip on this post
 	search('votes', 2, { _id: uuid}).then(function(data){
 
-		//if user diddnt upvote the post already
-		if (data[0].upvoters.indexOf(ip) == -1){
+		//if uuid doesnt exist
+		if (data == ''){
+			resolve({error: 'uuid doesnt exist', code: 0});
+		}else{
+	
+	
+			//if user diddnt upvote the post already
+			if (data[0].upvoters.indexOf(ip) == -1){
+				
+				//add upvote
+				update('cams', { _id: uuid }, { $inc: {upvotes: 1} } );
+				//add ip to upvoters list
+				update('votes', { _id: uuid }, { $push: {upvoters: ip} } );
+				
+				//if user downvoted before
+				if (data[0].downvoters.indexOf(ip) !== -1){
+					//take away the downvote
+					update('cams', { _id: uuid }, { $inc: {downvotes: -1} } );
+					//remove ip from downvoters list
+					update('votes', { _id: uuid }, { $pull: {downvoters: ip} } );
+				};
 			
-			//add upvote
-			update('cams', { _id: uuid }, { $inc: {upvotes: 1} } );
-			//add ip to upvoters list
-			update('votes', { _id: uuid }, { $push: {upvoters: ip} } );
-			
-			//if user downvoted before
-			if (data[0].downvoters.indexOf(ip) !== -1){
-				//take away the downvote
-				update('cams', { _id: uuid }, { $inc: {downvotes: -1} } );
-				//remove ip from downvoters list
-				update('votes', { _id: uuid }, { $pull: {downvoters: ip} } );
+				
+				
+			}else{
+				resolve({error: 'user already upvoted', code: 1});
 			};
 		
-			
-			
-		}else{
-			return false;
 		};
 	});	
+	
+	});
 }
 
 
@@ -125,31 +313,43 @@ function upvote(uuid,ip){
 //ip: ip of requester
 function downvote(uuid,ip){
 	
+	return new Promise(function(resolve,reject){
+
+	
+	
 	//search in vote records for upvotes on this ip on this post
 	search('votes', 2, { _id: uuid}).then(function(data){
 
-		//if user diddnt downvote the post already
-		if (data[0].downvoters.indexOf(ip) == -1){
-			
-			//add downvote
-			update('cams', { _id: uuid }, { $inc: {downvotes: 1} } );
-			//add ip to downvoters list
-			update('votes', { _id: uuid }, { $push: {downvoters: ip} } );
-			
-			//if user upvoted before
-			if (data[0].upvoters.indexOf(ip) !== -1){
-				//take away the upvote
-				update('cams', { _id: uuid }, { $inc: {upvotes: -1} } );
-				//remove ip from upvoters list
-				update('votes', { _id: uuid }, { $pull: {upvoters: ip} } );
-			};
-		
-			
-			
+		//if uuid doesnt exist
+		if (data == ''){
+			resolve({error: 'uuid doesnt exist', code: 0});
 		}else{
-			return false;
+			
+			//if user diddnt downvote the post already
+			if (data[0].downvoters.indexOf(ip) == -1){
+				
+				//add downvote
+				update('cams', { _id: uuid }, { $inc: {downvotes: 1} } );
+				//add ip to downvoters list
+				update('votes', { _id: uuid }, { $push: {downvoters: ip} } );
+				
+				//if user upvoted before
+				if (data[0].upvoters.indexOf(ip) !== -1){
+					//take away the upvote
+					update('cams', { _id: uuid }, { $inc: {upvotes: -1} } );
+					//remove ip from upvoters list
+					update('votes', { _id: uuid }, { $pull: {upvoters: ip} } );
+				};
+			
+				
+				
+			}else{
+				resolve({error: 'user already downvoted', code: 1});
+			};
 		};
 	});	
+	
+	});
 }
 
 
@@ -162,40 +362,48 @@ function load(url,ip){
 	//TODO: add check to see if the url is in the c4 list
 	//so people cant feed it garbage data
 	
-	//check if url already is in database
-	search('cams',0,url).then(function(data){
-		if (data == ''){
-			//if url isnt in the database add it and restart the function
-			console.log('[INFO] cam not found in database, creating page')
-			createDoc(url).then(function(){
-				load(url,ip);
-			})
-		}else{
-			//if the camera exists in the database add view count
-			console.log('[INFO] PAGE EXISTS');			
-		
-			//if viewers array for this cam doesnt exist make it
-			if (views[data[0]._id] == undefined){
-				views[data[0]._id] = [];
+	
+	return new Promise(function(resolve,reject){
+	
+		//check if url already is in database
+		search('cams',0,url).then(function(data){
+			if (data == ''){
+				//if url isnt in the database add it and restart the function
+				console.log('[INFO] cam not found in database, creating page')
+				createDoc(url).then(function(){
+					load(url,ip).then(function(data){
+						resolve(data[0]);
+					});
+				})
+			}else{
+				//if the camera exists in the database add view count
+				console.log('[INFO] PAGE EXISTS');			
+			
+				//if viewers array for this cam doesnt exist make it
+				if (views[data[0]._id] == undefined){
+					views[data[0]._id] = [];
+				};
+				
+				//if ip havent already viewed push ip to array and count view
+				if (views[data[0]._id].indexOf(ip) == -1){
+					views[data[0]._id].push(ip)
+					
+					//add view to the cam
+					update('cams', { _id: data[0]._id }, { $inc: { views: 1 } })
+					
+					
+				};
+				
+				resolve(data);
 			};
 			
-			//if ip havent already viewed push ip to array and count view
-			if (views[data[0]._id].indexOf(ip) == -1){
-				views[data[0]._id].push(ip)
-				
-				//add view to the cam
-				update('cams', { _id: data[0]._id }, { $inc: { views: 1 } })
-				
-				
-			};
 			
-			return data;
-		};
+		}).catch(function(err){
+			throw err;
+		});
 		
-		
-	}).catch(function(err){
-		throw err;
 	});
+		
 };
 
 
@@ -256,7 +464,7 @@ function search(collection,mode,input){
 	return new Promise(function(resolve,reject){
 		MongoClient.connect(mongoUrl, function(err, db) {
 			if (err) reject(err);
-			var dbo = db.db("c4-roulette");
+			var dbo = db.db("c4-cams");
 			//not as elegant as /(?<=:\/\/)(.+?)(?=\/)/g but positive lookbehinds aren't supported
 			if (mode == 0){
 				var query = { url: /(:\/\/)(.+?)(?=\/)/g.exec(input)[0].replace('://','') };
@@ -273,6 +481,8 @@ function search(collection,mode,input){
 			};
 			dbo.collection(collection).find(query).toArray(function(err, result) {
 				if (err) reject(err);
+				
+				console.log(result)
 				
 				resolve(result);
 				
@@ -292,7 +502,7 @@ function add(collection,data){
 	return new Promise(function(resolve,reject){
 		MongoClient.connect(mongoUrl, function(err, db) {
 			if (err) throw err;
-			var dbo = db.db("c4-roulette");
+			var dbo = db.db("c4-cams");
 			dbo.collection(collection).insertOne(data, function(err, res) {
 				if (err) throw err;
 				resolve();
@@ -312,7 +522,7 @@ function update(collection,query,data){
 	return new Promise(function(resolve,reject){
 		MongoClient.connect(mongoUrl, function(err, db) {
 			if (err) throw err;
-			var dbo = db.db("c4-roulette");
+			var dbo = db.db("c4-cams");
 			dbo.collection(collection).updateOne(query, data, function(err, res) {
 				if (err) throw err;
 				resolve();
