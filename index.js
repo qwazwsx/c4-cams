@@ -12,7 +12,8 @@ todo: verify links passed into load(x)
 */
 
 
-
+/* ########################################### */
+/* REQUIREMENTS AND VARS */
 var MongoClient = require('mongodb').MongoClient;		//mongoDB client for databases
 var mongoUrl = "mongodb://localhost:27017/";			//location of mongoDB server
 var uuidv4 = require('uuid/v4');						//generates uuid's for documents
@@ -24,34 +25,80 @@ var RateLimit = require('express-rate-limit');			//get ratelimiter for express
 var app = express();									//get express server
 var views = [];											//tracks users for view counts
 var reports = [];										//tracks users for reports
-var sortedPosts = []									//list of sorted posts, updates every 10 min
+var topPosts = []										//list of sorted posts, updates every 10 min
 var port = process.env.PORT || 3000;        			// set our port (defaults to 8081 if env var isnt set)
 
 
+/* ########################################### */
+/* SERVER SETUP */
 
-
-//setup ratelimiting
+//enable ratelimiting
 app.enable('trust proxy');
-
 var apiLimiter = new RateLimit({
-  windowMs: 40*1000, // 1 minute
+  windowMs: 60*1000, // 1 minute
   max: 120,
   delayMs: 0 // disabled
 });
-
 app.use('/api/', apiLimiter);
 
+var apiLimiterHard = new RateLimit({
+  windowMs: 10*60*1000, // 1 minute
+  max: 3,
+  delayMs: 0, // disabled
+  skipFailedRequests: true
+});
+app.use('/api/add', apiLimiterHard);
+
+sort();
 
 
+//re-calculate top posts every 5 min
+setInterval(function(){
+	sort();
+},5*60*1000);
+
+//reset rate-limiting for views and reports
+setInterval(function(){
+	views = [];
+	reports = [];
+},30*60*1000);
+
+
+/* ########################################### */
+/* API */
+
+
+app.post('/api/add', function (req, res) {
+	addCamera(req.query.url).then(function(data){
+		if (data.error !== undefined){
+			res.status(400).send(data);
+		}else{
+			res.send(data);
+		}
+	});
+});
+
+
+
+
+
+
+//sends ordered list of posts
+app.get('/api/top', function (req, res) {
+	res.send(topPosts);
+});
+
+
+//################################################
 //responds pong
 //delay: ms to delay response
 app.get('/api/ping', function (req, res) {
-	
 	setTimeout(function(){res.send('pong')},req.query.delay);
-
-
 });
 
+
+
+//################################################
 //query params
 //type: 0 - search by camera object uuid, 1 - search by short url, 2 - search by full url
 //query: what you are seaching for
@@ -63,26 +110,24 @@ app.post('/api/find', function (req, res) {
 			search('cams',2,{ _id: req.query.query}).then(function(send){res.send(send[0])});
 		}else{
 			if (req.query.type == 1){
-				search('cams',2,{ url: req.query.query }).then(function(send){res.send(send)});
+				search('cams',2,{ url: req.query.query }).then(function(send){res.send(send[0])});
 			}else{
 				if (req.query.type == 2){
-					search('cams',2,{ urlFull: req.query.query }).then(function(send){res.send(send)});
+					search('cams',2,{ urlFull: req.query.query }).then(function(send){res.send(send[0])});
 				}else{
-					res.send({error: 'parameter \'type\' not set correctly', code: 0});
+					res.status(400).send({error: 'parameter \'type\' not set correctly', code: 0});
 				}
 			}
 		}
 	
 	}else{
-		res.send({error: 'parameter \'query\' not set correctly', code: 1});
+		res.status(400).send({error: 'parameter \'query\' not set correctly', code: 1});
 	}
 });
 
 
 
-
-
-
+//################################################
 //query params
 //uuid
 //errors
@@ -90,14 +135,19 @@ app.post('/api/find', function (req, res) {
 app.post('/api/report', function (req, res) {
 	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;	
 	report(req.query.uuid,ip).then(function(send){
-		
-		res.send(send);
+		if (data.error !== undefined){
+			res.status(400).send(send);
+		}else{
+			res.send(send);
+		}
 		
 	});
 
 });
 
 
+
+//################################################
 //query params
 //uuid: uuid of a camera object
 //errors
@@ -106,13 +156,20 @@ app.post('/api/report', function (req, res) {
 app.post('/api/upvote', function (req, res) {
 	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;	
 	upvote(req.query.uuid,ip).then(function(data){
-		res.send(data);
+		if (data.error !== undefined){
+			res.status(400).send(data);
+		}else{
+			res.send(data);
+		}
 		if (data.error !== undefined){
 			console.log(data);
 		};
 	});
 });
 
+
+
+//################################################
 //query params
 //uuid: uuid of a camera object
 //errors
@@ -121,7 +178,11 @@ app.post('/api/upvote', function (req, res) {
 app.post('/api/downvote', function (req, res) {
 	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;	
 	downvote(req.query.uuid,ip).then(function(data){
-		res.send(data);
+		if (data.error !== undefined){
+			res.status(400).send(data);
+		}else{
+			res.send(data);
+		}
 		if (data.error !== undefined){
 			console.log(data);
 		}
@@ -130,7 +191,7 @@ app.post('/api/downvote', function (req, res) {
 
 
 
-
+//################################################
 //returns a random camera object
 app.get('/api/random', function (req, res) {
 	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;
@@ -159,27 +220,48 @@ app.get('/api/random', function (req, res) {
 
 
 
-
-
-
-
-
-
-
+//use routes
 app.use('/', express.static('static'))
 
-app.listen(3000, function(){
+app.listen(port, function(){
 	console.log('[INFO] server running on port '+port);
 });
 
 
+/* ########################################### */
+/* FUNCTIONS */
 
 
 
+function addCamera(url){
+	
+	return new Promise(function(resolve,reject){
 
+	search('camera_list',2,{url: url}).then(function(data){
+		
+		if (data == ''){
+		
+			//if it is a link
+			if (url.indexOf('http') !== -1){
+				add('camera_list',{url: url}).then(function(){
+					createDoc(url).then(function(data){
+						resolve({uuid: data, response: 'OK', code: 200});
+					});
 
+				});
+			}else{
+				resolve({error: 'not valid url', code: 0});
 
-
+			}
+	
+		}else{
+			resolve({error: 'url alread exists', code: 1});
+		}
+	});
+	
+	});
+	
+}
 
 
 //gets all data from database and sorts using wilson type sorting
@@ -187,24 +269,31 @@ app.listen(3000, function(){
 //sets var sortedPosts
 //sortedPosts gets returned when the top list is needed
 //this function should be ran at an interval 5min?? 10 min? 30min?
+var unsortedPosts = [];
+var score;
+var posts;
 function sort(){
+	
+	return new Promise(function(resolve,reject){
+
 	
 	MongoClient.connect(mongoUrl, function(err, db) {
 		if (err) throw err;
 		var dbo = db.db("c4-cams");
+		//get all cams
 		dbo.collection('cams').find({}).toArray(function(err, data) {
 			if (err) throw err;
 			
-			//console.log(data)
-			var unsortedPosts = [];
+			unsortedPosts = [];
 			
+			//loop over all cams and score them
 			for (var i = 0; i < data.length; i++){
 				
-				//console.log(data[i]);
 				
-				var score = wilsonScore(data[i].upvotes, data[i].downvotes);
-				//console.log(score);
+				//calc score with decay
+				score = wilsonScore(data[i].upvotes, data[i].downvotes);
 				
+				//add this to an array
 				unsortedPosts[i] = [];
 				unsortedPosts[i].score = score;
 				unsortedPosts[i].data = data[i];
@@ -212,8 +301,11 @@ function sort(){
 				
 			}
 			
-			var posts = sortBy(unsortedPosts,'score').reverse();
+			//sort scored posts
+			posts = sortBy(unsortedPosts,'score').reverse();
+			sortedPosts = [];
 			
+			//remove score from data
 			for (var i = 0; i < posts.length; i++){
 				
 				sortedPosts[i] = posts[i].data;
@@ -221,7 +313,15 @@ function sort(){
 				
 			}
 			
-			console.log(JSON.stringify(sortedPosts))
+			//only get top 50 results
+			topPosts = sortedPosts.slice(0, 50);;
+			
+			console.log('[INFO] top posts calculated')
+			
+			resolve();
+			
+			
+			//console.log(sortedPosts);
 			
 			
 			
@@ -229,7 +329,7 @@ function sort(){
 		});
 	});	
 	
-	
+	});
 	
 }
 
@@ -438,7 +538,7 @@ function createDoc(url){
 					
 				add('votes', { _id:uuid, upvoters: [], downvoters: []} ).then(function(data){
 					
-					resolve();
+					resolve(uuid);
 					
 				});
 				
@@ -481,9 +581,7 @@ function search(collection,mode,input){
 			};
 			dbo.collection(collection).find(query).toArray(function(err, result) {
 				if (err) reject(err);
-				
-				console.log(result)
-				
+								
 				resolve(result);
 				
 				db.close();
