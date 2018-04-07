@@ -138,7 +138,9 @@ example:
 
 ## 4. `POST /api/add`
 
-add camera to the site
+add a camera to the main list of cams. It will be available from `/api/random` and can show in `/api/top`
+
+**ratelimited to 3 POST's per 10 minutes** (errors dont count towards this)
 
 required? | query parameter | use
 --------- |---------------  | ---
