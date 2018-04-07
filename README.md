@@ -4,7 +4,7 @@ API documentation:
 
 **note: you are limited to 120 API calls per minute**
 
-note2: all urls in this doc were pulled from the turbo/c4 list and slightly altered.
+note2: all urls in this doc were pulled from the [turbo/c4](https://github.com/turbo/c4) list and slightly altered.
 
 ## 0. Understanding Camera Objects
 
