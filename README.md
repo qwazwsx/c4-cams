@@ -1,9 +1,10 @@
 # c4-cams
 
-
 API documentation: 
 
 **note: you are limited to 120 API calls per minute**
+
+note2: all urls in this doc were pulled from the @turbo/c4 list and slightly altered.
 
 ## 0. Understanding Camera Objects
 
@@ -14,11 +15,11 @@ Camera objects are composed of 7 parts
   - eg: `d475a62d-b718-41ff-b427-911f71d33755`
 - urlFull
   - the full url of a camera stream
-  - eg: `http://80.13.70.54:8001/mjpg/video.mjpg?COUNTER/`
+  - eg: `http://81.13.70.54:8001/mjpg/video.mjpg?COUNTER/`
 - url
   - a shortened version of the url
   - a full url can be converted to a short url with the following regex `/(:\/\/)(.+?)(?=\/)/g`
-  - eg: 80.13.70.54:8001
+  - eg: `81.13.70.54:8001`
 - upvotes
   - amount of upvotes a post has, positive integer
 - downvotes
@@ -36,8 +37,8 @@ now that we know that heres an example of a camera object
 ```JSON
 {
   "_id":"d475a62d-b718-41ff-b427-911f71d33755",
-  "urlFull":"http://80.13.70.54:8001/mjpg/video.mjpg?COUNTER/",
-  "url":"80.13.70.54:8001",
+  "urlFull":"http://81.13.70.54:8001/mjpg/video.mjpg?COUNTER/",
+  "url":"81.13.70.54:8001",
   "upvotes":1,
   "downvotes":3,
   "reports":0,
@@ -80,20 +81,20 @@ the following 3 API requests all return the same thing
 
 (searches for uuid `d475a62d-b718-41ff-b427-911f71d33755`)
 
-`GET /api/find?type=1&query=80.13.70.54:8001`
+`GET /api/find?type=1&query=81.13.70.54:8001`
 
-(searches for short url `80.13.70.54:8001`)
+(searches for short url `81.13.70.54:8001`)
 
-`GET /api/find?type=2&query=http://80.13.70.54:8001/mjpg/video.mjpg?COUNTER/`
+`GET /api/find?type=2&query=http://81.13.70.54:8001/mjpg/video.mjpg?COUNTER/`
 
-(searches for full url `http://80.13.70.54:8001/mjpg/video.mjpg?COUNTER/`)
+(searches for full url `http://81.13.70.54:8001/mjpg/video.mjpg?COUNTER/`)
 
 They all return the same camera object
 
 ```JSON
 {"_id":"d475a62d-b718-41ff-b427-911f71d33755",
-"url":"80.13.70.54:8001",
-"urlFull":"http://80.13.70.54:8001/mjpg/video.mjpg?COUNTER/",
+"url":"81.13.70.54:8001",
+"urlFull":"http://81.13.70.54:8001/mjpg/video.mjpg?COUNTER/",
 "upvotes":17,
 "downvotes":2,
 "reports":0,
@@ -113,8 +114,8 @@ example:
 [
   {
     "_id":"202340ed-5fbe-4dcb-817b-d9a9f5ce2c52",
-   "url":"24.116.100.10:80",
-   "urlFull":"http://24.116.100.10:80/axis-cgi/mjpg/video.cgi?camera=&amp;amp;resolution=640x480/",
+   "url":"25.116.100.10:80",
+   "urlFull":"http://25.116.100.10:80/axis-cgi/mjpg/video.cgi?camera=&amp;amp;resolution=640x480/",
    "upvotes":10,
    "downvotes":2,
    "reports":0,
@@ -123,8 +124,8 @@ example:
   
   {
     "_id":"a39d3ed7-0994-4c13-97eb-1d12a3325b3b",
-    "url":"85.105.134.7:60001",
-    "urlFull":"http://85.105.134.7:60001/cgi-bin/snapshot.cgi?chn=0&amp;u=admin&amp;p=&amp;q=0/",
+    "url":"86.105.134.7:60001",
+    "urlFull":"http://86.105.134.7:60001/cgi-bin/snapshot.cgi?chn=0&amp;u=admin&amp;p=&amp;q=0/",
     "upvotes":5,
     "downvotes":1,
     "reports":0,
@@ -135,9 +136,29 @@ example:
 
 ```
 
+## 4. `POST /api/add`
 
+add camera to the site
 
-## 4. `POST /api/upvote`
+required? | query parameter | use
+--------- |---------------  | ---
+✔️ | url | direct link to camera's stream. must be in a format that can be in an \<img> tag
+
+###### example
+
+`POST /api/add?url=http://82.45.80.216:8000/axis-cgi/mjpg/video.cgi?camera=&amp;amp;resolution=640x480/`
+
+returns the newly created camera object's UUID
+
+```JSON
+{
+  "uuid":"21044371-fdd1-4c88-aed2-a35e8e245ab5",
+  "response":"OK",
+  "code":200
+}
+```
+
+## 5. `POST /api/upvote`
 
 upvotes a given post
 
@@ -151,7 +172,7 @@ required? | query parameter | use
 
 this will upvote the post with the uuid of `d475a62d-b718-41ff-b427-911f71d33755`
 
-## 5. `POST /api/downvote`
+## 6. `POST /api/downvote`
 
 upvotes a given post
 
@@ -165,7 +186,7 @@ required? | query parameter | use
 
 this will downvote the post with the uuid of `d475a62d-b718-41ff-b427-911f71d33755`
 
-## 6. `POST /api/report`
+## 7. `POST /api/report`
 
 report a given post for being a dead link or inappropriate content 
 
