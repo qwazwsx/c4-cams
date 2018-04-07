@@ -12,6 +12,12 @@ required? | query parameter | use
 --------- |---------------  | ---
 ❌ | delay | delay in ms for sending the text 
 
+##### example
+
+`GET /api/ping?delay=5000`
+
+waits 5 seconds and returns the text `pong`
+
 ## 2. `POST /api/find`
 
 search for cams
