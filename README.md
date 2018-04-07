@@ -3,6 +3,8 @@
 
 API documentation: 
 
+**note: you are limited to 120 API calls per minute**
+
 ## 0. Understanding Camera Objects
 
 Camera objects are composed of 7 parts
