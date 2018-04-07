@@ -101,7 +101,7 @@ They all return the same camera object
 "views":37}
 ```
 
-##3. `GET /api/random`
+## 3. `GET /api/random`
 
 return a random camera object
 
