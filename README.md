@@ -3,6 +3,49 @@
 
 API documentation: 
 
+## 0. Understanding Camera Objects
+
+Camera objects are composed of 7 parts
+
+- _id 
+  - the UUID of the camera object/post
+  - eg: `d475a62d-b718-41ff-b427-911f71d33755`
+- urlFull
+  - the full url of a camera stream
+  - eg: `http://80.13.70.54:8001/mjpg/video.mjpg?COUNTER/`
+- url
+  - a shortened version of the url
+  - a full url can be converted to a short url with the following regex `/(:\/\/)(.+?)(?=\/)/g`
+  - eg: 80.13.70.54:8001
+- upvotes
+  - amount of upvotes a post has, positive integer
+- downvotes
+  - amount of downvotes a post has, positive integer
+- reports
+  - amount of reports a post has, posiitive integer
+  - a user only counts as a view every 30 minutes
+  - posts are autoreported when they fail to load, aswell as when the user clicks report
+- views
+  - amount of times the a post has been viewed
+  - a user only counts as a view every 30 minutes
+  
+now that we know that heres an example of a camera object
+
+```JSON
+{
+  "_id":"d475a62d-b718-41ff-b427-911f71d33755",
+  "urlFull":"http://80.13.70.54:8001/mjpg/video.mjpg?COUNTER/",
+  "url":"80.13.70.54:8001",
+  "upvotes":1,
+  "downvotes":3,
+  "reports":0,
+  "views":1
+}
+```
+
+now onto the API calls
+
+
 
 ## 1. `GET /api/ping`
 
@@ -43,7 +86,7 @@ the following 3 API requests all return the same thing
 
 (searches for full url `http://80.13.70.54:8001/mjpg/video.mjpg?COUNTER/`)
 
-They all return the same **camera object**
+They all return the same camera object
 
 ```JSON
 {"_id":"d475a62d-b718-41ff-b427-911f71d33755",
@@ -55,7 +98,44 @@ They all return the same **camera object**
 "views":37}
 ```
 
-## 3. `POST /api/upvote`
+## 3. `GET /api/top`
+
+returns an array of camera objects for the top 50 highest rated posts
+
+example:
+
+
+`GET /api/top`
+
+```JSON
+[
+  {
+    "_id":"202340ed-5fbe-4dcb-817b-d9a9f5ce2c52",
+   "url":"24.116.100.10:80",
+   "urlFull":"http://24.116.100.10:80/axis-cgi/mjpg/video.cgi?camera=&amp;amp;resolution=640x480/",
+   "upvotes":10,
+   "downvotes":2,
+   "reports":0,
+   "views":1
+  },
+  
+  {
+    "_id":"a39d3ed7-0994-4c13-97eb-1d12a3325b3b",
+    "url":"85.105.134.7:60001",
+    "urlFull":"http://85.105.134.7:60001/cgi-bin/snapshot.cgi?chn=0&amp;u=admin&amp;p=&amp;q=0/",
+    "upvotes":5,
+    "downvotes":1,
+    "reports":0,
+    "views":1
+    },
+  ...
+]
+
+```
+
+
+
+## 4. `POST /api/upvote`
 
 upvotes a given post
 
@@ -69,7 +149,7 @@ required? | query parameter | use
 
 this will upvote the post with the uuid of `d475a62d-b718-41ff-b427-911f71d33755`
 
-## 4. `POST /api/downvote`
+## 5. `POST /api/downvote`
 
 upvotes a given post
 
@@ -83,7 +163,7 @@ required? | query parameter | use
 
 this will downvote the post with the uuid of `d475a62d-b718-41ff-b427-911f71d33755`
 
-## 5. `POST /api/report`
+## 6. `POST /api/report`
 
 report a given post for being a dead link or inappropriate content 
 
