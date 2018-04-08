@@ -170,6 +170,8 @@ add a camera to the main list of cams. It will be available from `/api/random` a
 
 **ratelimited to 3 POST's per 10 minutes** (errors dont count towards this)
 
+note: a `/` may be appended to the end of your url. if you cant find your added url with /api/find this may be why
+
 required? | query parameter | use
 --------- |---------------  | ---
 ✔️ | url | direct link to camera's stream. must be in a format that can be in an \<img> tag
