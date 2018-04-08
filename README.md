@@ -220,7 +220,7 @@ this will downvote the post with the uuid of `d475a62d-b718-41ff-b427-911f71d337
 
 ## 8. `POST /api/report`
 
-report a given post for being a dead link or inappropriate content 
+report a given post for being a dead link
 
 note: you can only report a post once, trying to report a post multiple times will return error code `0`
 
