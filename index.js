@@ -2,10 +2,8 @@
 
 made by qwazwsx/thisisatesttoseehowl
 
-https://github.com/qwazwsx
+https://github.com/qwazwsx/c4-cams
 
-
-todo: verify links passed into load(x)
 
 
 
@@ -23,10 +21,47 @@ var sortBy = require('sort-array');						//helps when sorting arrays of posts
 var express = require('express');						//get express for API
 var RateLimit = require('express-rate-limit');			//get ratelimiter for express
 var app = express();									//get express server
+var http = require('http');
+var { URL } = require('url');
 var views = [];											//tracks users for view counts
 var reports = [];										//tracks users for reports
 var topPosts = []										//list of sorted posts, updates every 10 min
 var port = process.env.PORT || 3000;        			// set our port (defaults to 8081 if env var isnt set)
+var db;													//database connection
+
+
+
+//connect to database
+MongoClient.connect(mongoUrl, function(err, connection) {
+	//set database object to global var
+	db = connection;
+	sort();
+});
+
+
+//catch shutdown signal and disconnect from DB
+//its JS why do I have to write code to support different platforms?
+//https://stackoverflow.com/a/14861513/6088533
+if (process.platform === "win32") {
+  var rl = require("readline").createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  rl.on("SIGINT", function () {
+    process.emit("SIGINT");
+  });
+}
+
+process.on("SIGINT", function () {
+  //graceful shutdown
+  db.close().then(function() {
+  	console.log('got shutdown signal, closing database connection');
+  	process.exit();
+  });
+  
+});
+
 
 
 /* ########################################### */
@@ -49,7 +84,6 @@ var apiLimiterHard = new RateLimit({
 });
 app.use('/api/add', apiLimiterHard);
 
-sort();
 
 
 //re-calculate top posts every 5 min
@@ -57,7 +91,7 @@ setInterval(function(){
 	sort();
 },5*60*1000);
 
-//reset rate-limiting for views and reports
+//reset "rate-limiting" for views and reports
 setInterval(function(){
 	views = [];
 	reports = [];
@@ -68,9 +102,12 @@ setInterval(function(){
 /* API */
 
 
+//################################################
+//add camera to list
 app.post('/api/add', function (req, res) {
 	addCamera(req.query.url).then(function(data){
 		if (data.error !== undefined){
+			//if url isnt valid or already exists
 			res.status(400).send(data);
 		}else{
 			res.send(data);
@@ -82,9 +119,10 @@ app.post('/api/add', function (req, res) {
 
 
 
-
+//################################################
 //sends ordered list of posts
 app.get('/api/top', function (req, res) {
+	//return cached array
 	res.send(topPosts);
 });
 
@@ -104,23 +142,29 @@ app.get('/api/ping', function (req, res) {
 //query: what you are seaching for
 app.post('/api/find', function (req, res) {
 	
+	//if query isnt empty
 	if (req.query.query !== undefined){
 	
+		//if searching by uuid
 		if (req.query.type == 0){
 			search('cams',2,{ _id: req.query.query}).then(function(send){res.send(send[0])});
 		}else{
+			//if searching by short url
 			if (req.query.type == 1){
 				search('cams',2,{ url: req.query.query }).then(function(send){res.send(send[0])});
 			}else{
+				//if searching by full url
 				if (req.query.type == 2){
 					search('cams',2,{ urlFull: req.query.query }).then(function(send){res.send(send[0])});
 				}else{
+					//if type is invalid
 					res.status(400).send({error: 'parameter \'type\' not set correctly', code: 0});
 				}
 			}
 		}
 	
 	}else{
+		//if query is empty
 		res.status(400).send({error: 'parameter \'query\' not set correctly', code: 1});
 	}
 });
@@ -194,27 +238,11 @@ app.post('/api/downvote', function (req, res) {
 //################################################
 //returns a random camera object
 app.get('/api/random', function (req, res) {
-	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;
+	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress;
 	
-	//req.
-	
-	MongoClient.connect(mongoUrl, function(err, db) {
-		if (err) throw err;
-		var dbo = db.db("c4-cams");
-		dbo.collection('camera_list').aggregate([{ $sample: { size: 1 } }]).toArray(function(err, data) {
-			if (err) throw err;
-			
-			
-			
-			load(data[0].url,ip).then(function(data){
-				res.send(data);
-			});;
-			
-			
-			
-			db.close();
-		});
-	});	
+	random(ip).then(function(data) {
+		res.send(data);
+	});
 	
 });
 
@@ -232,19 +260,95 @@ app.listen(port, function(){
 /* FUNCTIONS */
 
 
+//get a random camera from the database, check that is works, and make a document for it
+//ip: ip of requester
+function random(ip) {
 
+	return new Promise(function(resolve,reject){
+
+	//get random document from database
+	var dbo = db.db("c4-cams");
+	dbo.collection('camera_list').aggregate([{ $sample: { size: 1 } }]).toArray(function(err, cameraObj) {
+		if (err) throw err;
+		
+		//check if url can be reached
+		checkUrl(cameraObj[0].url).then(function(data){
+
+			//if the url returns an error
+			if (data.error){
+
+				//try again with another url
+				random(ip).then(function(data) {
+					resolve(data)
+				});
+			}else{
+				//if url returns OK
+				//either get the data for the url if it exists or make a new doc and return it
+				load(cameraObj[0].url,ip).then(function(data){
+					resolve(data);
+				});
+			};
+		});
+	});
+	});
+}
+
+
+
+
+
+
+
+
+//returns status code of given url
+//if error response will have error set to true
+function checkUrl(url){
+
+	return new Promise(function(resolve,reject){
+
+	//setup options
+	var options = new URL(url);
+	options.method = 'HEAD'
+
+	//make the request
+	var req = http.request(options, function(r) {
+			//return the response code on no errors
+			resolve(r.statusCode);
+		});
+	req.on('error', function(err) {
+		//on error return error flag
+	 	resolve({ error: true, message: err });
+		});
+	req.setTimeout(5000, function() {
+		//timeout and return error flag
+		req.abort();
+		resolve({ error: true, message: 'timeout' });
+	});
+	req.end();
+
+	});
+}
+
+
+//add a camera to the list
+//url: full url?
 function addCamera(url){
 	
 	return new Promise(function(resolve,reject){
 
+	//search for the given url
 	search('camera_list',2,{url: url}).then(function(data){
 		
+		//if it doesnt already exist
 		if (data == ''){
 		
 			//if it is a link
 			if (url.indexOf('http') !== -1){
+				//add it to the list
 				add('camera_list',{url: url}).then(function(){
+					//create a doc for it
 					createDoc(url).then(function(data){
+						//return OK
 						resolve({uuid: data, response: 'OK', code: 200});
 					});
 
@@ -255,7 +359,8 @@ function addCamera(url){
 			}
 	
 		}else{
-			resolve({error: 'url alread exists', code: 1});
+			//if url already exists
+			resolve({error: 'url already exists', code: 1});
 		}
 	});
 	
@@ -276,9 +381,6 @@ function sort(){
 	
 	return new Promise(function(resolve,reject){
 
-	
-	MongoClient.connect(mongoUrl, function(err, db) {
-		if (err) throw err;
 		var dbo = db.db("c4-cams");
 		//get all cams
 		dbo.collection('cams').find({}).toArray(function(err, data) {
@@ -325,9 +427,7 @@ function sort(){
 			
 			
 			
-			db.close();
-		});
-	});	
+		});	
 	
 	});
 	
@@ -342,21 +442,29 @@ function report(uuid,ip){
 	
 	return new Promise(function(resolve,reject){
 
-	//if report isnt already in temp array
-	if (reports[uuid] == undefined){
-		reports[uuid] = [];
-	};
-	
-	//if ip hasnt already reported 
-	if (reports[uuid].indexOf(ip) == -1){
+	//if request is coming from /api/random
+	//ie a confirmed broken link, no need to limit
+	if (ip == 'super'){
 		update('cams', { _id:uuid }, { $inc: { reports: 1 } } );
-		reports[uuid].push(ip);
+		resolve();
 	}else{
-		resolve({error: 'you have already reported this camera', code: 0});
+		//if report isnt already in temp array
+		if (reports[uuid] == undefined){
+			reports[uuid] = [];
+		};
 		
-	}
+		//if ip hasnt already reported 
+		if (reports[uuid].indexOf(ip) == -1){
+			update('cams', { _id:uuid }, { $inc: { reports: 1 } } );
+			reports[uuid].push(ip);
+			resolve();
+		}else{
+			resolve({error: 'you have already reported this camera', code: 0});
 			
+		}
+	}
 	});	
+
 			
 }
 
@@ -469,7 +577,7 @@ function load(url,ip){
 		search('cams',0,url).then(function(data){
 			if (data == ''){
 				//if url isnt in the database add it and restart the function
-				console.log('[INFO] cam not found in database, creating page')
+				console.log('[INFO] creating page ' + url)
 				createDoc(url).then(function(){
 					load(url,ip).then(function(data){
 						resolve(data[0]);
@@ -477,7 +585,7 @@ function load(url,ip){
 				})
 			}else{
 				//if the camera exists in the database add view count
-				console.log('[INFO] PAGE EXISTS');			
+				//console.log('[INFO] PAGE EXISTS');			
 			
 				//if viewers array for this cam doesnt exist make it
 				if (views[data[0]._id] == undefined){
@@ -562,31 +670,33 @@ function createDoc(url){
 function search(collection,mode,input){
 
 	return new Promise(function(resolve,reject){
-		MongoClient.connect(mongoUrl, function(err, db) {
-			if (err) reject(err);
-			var dbo = db.db("c4-cams");
-			//not as elegant as /(?<=:\/\/)(.+?)(?=\/)/g but positive lookbehinds aren't supported
-			if (mode == 0){
-				var query = { url: /(:\/\/)(.+?)(?=\/)/g.exec(input)[0].replace('://','') };
+		var dbo = db.db("c4-cams");
+		//not as elegant as /(?<=:\/\/)(.+?)(?=\/)/g but positive lookbehinds aren't supported
+		if (mode == 0){
+			//cut long url to short version
+			var query = { url: /(:\/\/)(.+?)(?=\/)/g.exec(input)[0].replace('://','') };
+		}else{
+			if (mode == 1){
+				//search for uuid
+				var query = { uuid: input };
 			}else{
-				if (mode == 1){
-					var query = { uuid: input };
-				}else{
-					if (mode == 2){
-						var query = input;
-					};
-					
+				if (mode == 2){
+					//custom search query
+					var query = input;
 				};
 				
 			};
-			dbo.collection(collection).find(query).toArray(function(err, result) {
-				if (err) reject(err);
-								
-				resolve(result);
-				
-				db.close();
-		  });
-		});
+			
+		};
+		//perform the search
+		dbo.collection(collection).find(query).toArray(function(err, result) {
+			if (err) reject(err);
+			
+			//return result
+			resolve(result);
+			
+	  });
+
 	});
 }
 
@@ -596,16 +706,11 @@ function search(collection,mode,input){
 //collection: collection to add data to
 //data: object of data to add
 function add(collection,data){
-	
 	return new Promise(function(resolve,reject){
-		MongoClient.connect(mongoUrl, function(err, db) {
+		var dbo = db.db("c4-cams");
+		dbo.collection(collection).insertOne(data, function(err, res) {
 			if (err) throw err;
-			var dbo = db.db("c4-cams");
-			dbo.collection(collection).insertOne(data, function(err, res) {
-				if (err) throw err;
-				resolve();
-				db.close();
-			});
+			resolve();
 		});	
 	});
 };
@@ -616,16 +721,11 @@ function add(collection,data){
 //query: object of keys to search for 
 //data: object of keys to replace
 function update(collection,query,data){
-	
 	return new Promise(function(resolve,reject){
-		MongoClient.connect(mongoUrl, function(err, db) {
+		var dbo = db.db("c4-cams");
+		dbo.collection(collection).updateOne(query, data, function(err, res) {
 			if (err) throw err;
-			var dbo = db.db("c4-cams");
-			dbo.collection(collection).updateOne(query, data, function(err, res) {
-				if (err) throw err;
-				resolve();
-				db.close();
-			});
+			resolve();
 		});	
 	});
 };
@@ -637,40 +737,3 @@ function update(collection,query,data){
 process.on('unhandledRejection', (reason, p) => {
   console.log('Unhandled Rejection at: Promise', p, 'reason:', reason);
 });
-	
-	
-	
-	
-//createDoc('http://te.st:3000').catch(function(err){console.log('asd')})
-	
-	
-	
-
-
-
-// MongoClient.connect(url, function(err, db) {
-  // if (err) throw err;
-  // var dbo = db.db("c4-roulette");
-  // var query = { url: "111.111.111.111" };
-  // dbo.collection("cam_uuid_translate").find(query).toArray(function(err, result) {
-    // if (err) throw err;
-    // console.log(result);
-    // db.close();
-  // });
-// });
-
-
-
-
-
-
-// MongoClient.connect(url, function(err, db) {
-  // if (err) throw err;
-  // var dbo = db.db("c4-roulette");
-  // var myobj = {_id: uuid.v4(), upvotes: 5, reports: 1};
-  // dbo.collection("cams").insertOne(myobj, function(err, res) {
-    // if (err) throw err;
-    // console.log("1 document inserted");
-    // db.close();
-  // });
-// });
