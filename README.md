@@ -103,7 +103,13 @@ They all return the same camera object
 
 ## 3. `GET /api/random`
 
-return a random camera object
+returns a random camera object
+
+**this does NOT instantly return a value**
+
+on the server-end it check if the url is dead or not, if it is dead it generates another random url and checks that
+
+**it *could* take up to 15 seconds to return a value in worst-case scenario**
 
 *no query params*
 
