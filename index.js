@@ -28,13 +28,14 @@ var reports = [];										//tracks users for reports
 var topPosts = []										//list of sorted posts, updates every 10 min
 var port = process.env.PORT || 3000;        			// set our port (defaults to 8081 if env var isnt set)
 var db;													//database connection
-
+var dbo;
 
 
 //connect to database
 MongoClient.connect(mongoUrl, function(err, connection) {
 	//set database object to global var
 	db = connection;
+	dbo = db.db("c4-cams");
 	sort();
 });
 
@@ -179,7 +180,7 @@ app.post('/api/find', function (req, res) {
 app.post('/api/report', function (req, res) {
 	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;	
 	report(req.query.uuid,ip).then(function(send){
-		if (data.error !== undefined){
+		if (send.error !== undefined){
 			res.status(400).send(send);
 		}else{
 			res.send(send);
@@ -205,9 +206,6 @@ app.post('/api/upvote', function (req, res) {
 		}else{
 			res.send(data);
 		}
-		if (data.error !== undefined){
-			console.log(data);
-		};
 	});
 });
 
@@ -226,9 +224,6 @@ app.post('/api/downvote', function (req, res) {
 			res.status(400).send(data);
 		}else{
 			res.send(data);
-		}
-		if (data.error !== undefined){
-			console.log(data);
 		}
 	});
 });
@@ -267,7 +262,6 @@ function random(ip) {
 	return new Promise(function(resolve,reject){
 
 	//get random document from database
-	var dbo = db.db("c4-cams");
 	dbo.collection('camera_list').aggregate([{ $sample: { size: 1 } }]).toArray(function(err, cameraObj) {
 		if (err) throw err;
 		
@@ -276,6 +270,20 @@ function random(ip) {
 
 			//if the url returns an error
 			if (data.error){
+				console.log('[INFO] url dead '+ cameraObj[0].url);
+
+				//add error flag to doc
+				update('camera_list',cameraObj[0],{ $inc: { errors: 1 } } ).then(function(data) {
+					
+					//if there are 1 or more errors
+					if (data.errors >= 1){
+						//remove that cam from the list
+						remove('camera_list',cameraObj[0]).then(function(err,res) {
+							console.log('[INFO] removed cam from list '+cameraObj[0].url)
+						});
+					}
+				})
+
 
 				//try again with another url
 				random(ip).then(function(data) {
@@ -290,6 +298,7 @@ function random(ip) {
 			};
 		});
 	});
+
 	});
 }
 
@@ -313,7 +322,11 @@ function checkUrl(url){
 	//make the request
 	var req = http.request(options, function(r) {
 			//return the response code on no errors
-			resolve(r.statusCode);
+			if (r.statusCode == 200){
+				resolve(r.statusCode);
+			}else{
+				resolve({ error: true, message: 'request succeeded but response code was non-200, response code:'+r.statusCode });
+			}
 		});
 	req.on('error', function(err) {
 		//on error return error flag
@@ -336,34 +349,50 @@ function addCamera(url){
 	
 	return new Promise(function(resolve,reject){
 
-	//search for the given url
-	search('camera_list',2,{url: url}).then(function(data){
-		
-		//if it doesnt already exist
-		if (data == ''){
-		
-			//if it is a link
-			if (url.indexOf('http') !== -1){
-				//add it to the list
-				add('camera_list',{url: url}).then(function(){
-					//create a doc for it
-					createDoc(url).then(function(data){
-						//return OK
-						resolve({uuid: data, response: 'OK', code: 200});
-					});
+	if (url == undefined){
+		resolve({error: 'url not set', code: 2});
+	}else{
+		//search for the given url
+		search('camera_list',2,{url: url}).then(function(data){
+			
+			//if it doesnt already exist
+			if (data == ''){
+			
+				//if it is a link
+				if (url.indexOf('http') !== -1){
+					checkUrl(url).then(function(urlCheck){
+						if (urlCheck.error == undefined){
 
-				});
+							//add it to the list
+							add('camera_list',{url: url}).then(function(){
+								//create a doc for it
+								createDoc(url).then(function(data){
+									//return OK
+									resolve({uuid: data, response: 'OK', code: 200});
+								});
+
+							});
+
+						}else{
+							resolve({error: 'url is either not reachable to the web or not valid', code: 2});
+						}
+
+
+					})
+
+				}else{
+					resolve({error: 'not valid url', code: 0});
+
+				}
+		
 			}else{
-				resolve({error: 'not valid url', code: 0});
-
+				//if url already exists
+				resolve({error: 'url already exists', code: 1});
 			}
-	
-		}else{
-			//if url already exists
-			resolve({error: 'url already exists', code: 1});
-		}
-	});
-	
+		});
+	}
+
+
 	});
 	
 }
@@ -381,7 +410,6 @@ function sort(){
 	
 	return new Promise(function(resolve,reject){
 
-		var dbo = db.db("c4-cams");
 		//get all cams
 		dbo.collection('cams').find({}).toArray(function(err, data) {
 			if (err) throw err;
@@ -442,27 +470,34 @@ function report(uuid,ip){
 	
 	return new Promise(function(resolve,reject){
 
-	//if request is coming from /api/random
-	//ie a confirmed broken link, no need to limit
-	if (ip == 'super'){
-		update('cams', { _id:uuid }, { $inc: { reports: 1 } } );
-		resolve();
-	}else{
-		//if report isnt already in temp array
-		if (reports[uuid] == undefined){
-			reports[uuid] = [];
-		};
-		
-		//if ip hasnt already reported 
-		if (reports[uuid].indexOf(ip) == -1){
-			update('cams', { _id:uuid }, { $inc: { reports: 1 } } );
-			reports[uuid].push(ip);
-			resolve();
+	//search for the referenced post
+	search('cams', 2, { _id: uuid}).then(function(data){
+
+
+		if (data == ''){
+			//if the post doesnt exist
+			resolve({error: 'camera not found', code: 1});
 		}else{
-			resolve({error: 'you have already reported this camera', code: 0});
+			//if it exists
+
+			//if report isnt already in temp array
+			if (reports[uuid] == undefined){
+				reports[uuid] = [];
+			};
 			
+			//if ip hasnt already reported 
+			if (reports[uuid].indexOf(ip) == -1){
+				update('cams', { _id:uuid }, { $inc: { reports: 1 } } );
+				reports[uuid].push(ip);
+				resolve({message:'OK'});
+			}else{
+				resolve({error: 'you have already reported this camera', code: 0});
+				
+			}
 		}
-	}
+	});
+
+
 	});	
 
 			
@@ -670,7 +705,7 @@ function createDoc(url){
 function search(collection,mode,input){
 
 	return new Promise(function(resolve,reject){
-		var dbo = db.db("c4-cams");
+
 		//not as elegant as /(?<=:\/\/)(.+?)(?=\/)/g but positive lookbehinds aren't supported
 		if (mode == 0){
 			//cut long url to short version
@@ -707,7 +742,7 @@ function search(collection,mode,input){
 //data: object of data to add
 function add(collection,data){
 	return new Promise(function(resolve,reject){
-		var dbo = db.db("c4-cams");
+
 		dbo.collection(collection).insertOne(data, function(err, res) {
 			if (err) throw err;
 			resolve();
@@ -715,6 +750,21 @@ function add(collection,data){
 	});
 };
 	
+
+
+//remove data from a collection
+//collection: collection to remove data to
+//data: object of data to remove
+function remove(collection,query){
+	return new Promise(function(resolve,reject){
+
+		dbo.collection(collection).deleteOne(query, function(err, res) {
+			if (err) throw err;
+			resolve(err,res);
+		});	
+	});
+};
+
 	
 //update a document
 //collection:string
@@ -722,10 +772,9 @@ function add(collection,data){
 //data: object of keys to replace
 function update(collection,query,data){
 	return new Promise(function(resolve,reject){
-		var dbo = db.db("c4-cams");
-		dbo.collection(collection).updateOne(query, data, function(err, res) {
+		dbo.collection(collection).findOneAndUpdate(query, data,{ returnNewDocument: true }, function(err, res) {
 			if (err) throw err;
-			resolve();
+			resolve(res.value);
 		});	
 	});
 };
