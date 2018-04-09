@@ -21,15 +21,26 @@ var sortBy = require('sort-array');						//helps when sorting arrays of posts
 var express = require('express');						//get express for API
 var RateLimit = require('express-rate-limit');			//get ratelimiter for express
 var app = express();									//get express server
-var http = require('http');
-var { URL } = require('url');
+var http = require('http');								//http for checking if URLS are working
+var { URL } = require('url');							//parse URLS
+var server = require('http').Server(app);			 				//server for socket.io
+var io = require('socket.io')(server);					//socket.io
 var views = [];											//tracks users for view counts
 var reports = [];										//tracks users for reports
 var topPosts = []										//list of sorted posts, updates every 10 min
 var port = process.env.PORT || 3000;        			// set our port (defaults to 8081 if env var isnt set)
 var db;													//database connection
 var dbo;
+var time = 0;
 
+
+
+server.listen(80, function(){
+  console.log('listening on *:80');
+});
+
+
+io.on('connection', function(socket){console.log('W')})
 
 //connect to database
 MongoClient.connect(mongoUrl, function(err, connection) {
@@ -236,6 +247,7 @@ app.get('/api/random', function (req, res) {
 	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress;
 	
 	random(ip).then(function(data) {
+		console.log(data)
 		res.send(data);
 	});
 	
@@ -244,11 +256,9 @@ app.get('/api/random', function (req, res) {
 
 
 //use routes
-app.use('/', express.static('static'))
+app.use('/random', express.static('static'))
 
-app.listen(port, function(){
-	console.log('[INFO] server running on port '+port);
-});
+
 
 
 /* ########################################### */
@@ -266,10 +276,10 @@ function random(ip) {
 		if (err) throw err;
 		
 		//check if url can be reached
-		checkUrl(cameraObj[0].url).then(function(data){
+		checkUrl(cameraObj[0].url).then(function(urlCheck){
 
 			//if the url returns an error
-			if (data.error){
+			if (urlCheck.error){
 				console.log('[INFO] url dead '+ cameraObj[0].url);
 
 				//add error flag to doc
@@ -293,6 +303,8 @@ function random(ip) {
 				//if url returns OK
 				//either get the data for the url if it exists or make a new doc and return it
 				load(cameraObj[0].url,ip).then(function(data){
+					var tempData = data;
+					tempData.time = urlCheck.time;
 					resolve(data);
 				});
 			};
@@ -301,8 +313,6 @@ function random(ip) {
 
 	});
 }
-
-
 
 
 
@@ -320,10 +330,13 @@ function checkUrl(url){
 	options.method = 'HEAD'
 
 	//make the request
+	var beforeTime = time;
 	var req = http.request(options, function(r) {
 			//return the response code on no errors
 			if (r.statusCode == 200){
-				resolve(r.statusCode);
+				var totalTime = time - beforeTime
+				console.log(totalTime)
+				resolve({success: true, code: r.statusCode, time: totalTime });
 			}else{
 				resolve({ error: true, message: 'request succeeded but response code was non-200, response code:'+r.statusCode });
 			}
@@ -332,7 +345,7 @@ function checkUrl(url){
 		//on error return error flag
 	 	resolve({ error: true, message: err });
 		});
-	req.setTimeout(5000, function() {
+	req.setTimeout(3000, function() {
 		//timeout and return error flag
 		req.abort();
 		resolve({ error: true, message: 'timeout' });
@@ -342,6 +355,10 @@ function checkUrl(url){
 	});
 }
 
+
+setInterval(function() {
+	time = time + 100;
+},100)
 
 //add a camera to the list
 //url: full url?
@@ -601,9 +618,7 @@ function downvote(uuid,ip){
 //url: full url
 //ip: ip of requester
 function load(url,ip){
-	
-	//TODO: add check to see if the url is in the c4 list
-	//so people cant feed it garbage data
+
 	
 	
 	return new Promise(function(resolve,reject){
@@ -658,7 +673,7 @@ function load(url,ip){
 //url: full url
 function createDoc(url){
 	//add / incase url doesnt have / at the end (it breaks regex)
-	url = url + '/'
+	//url = url + '/'
 	
 	return new Promise(function(resolve,reject){
 		
