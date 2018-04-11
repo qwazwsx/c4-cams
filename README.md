@@ -31,6 +31,10 @@ Camera objects are composed of 7 parts
 - views
   - amount of times the a post has been viewed
   - a user only counts as a view every 30 minutes
+- time
+  - time in ms that it took for a HEAD request to the URL to come back OK
+  - only used in /api/random
+  - use this to specify at what interval to manually update static cams (round it as to not overload the camera)
   
 now that we know that heres an example of a camera object
 
@@ -103,11 +107,11 @@ They all return the same camera object
 
 ## 3. `GET /api/random`
 
-returns a random camera object
+returns a random camera object and the time it took to make a HEAD request
 
 **this does NOT instantly return a value**
 
-on the server-end it check if the url is dead or not, if it is dead it generates another random url and checks that
+on the server-end it checks if the url is valid and regenerates based on that
 
 **it *could* take up to 15 seconds to return a value in worst-case scenario**
 
@@ -127,7 +131,8 @@ required? | query parameter | use
   "upvotes":0,
   "downvotes":0,
   "reports":0,
-  "views":0
+  "views":0,
+  "time": 500
  }
 ```
 
