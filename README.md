@@ -224,7 +224,24 @@ required? | query parameter | use
 
 this will downvote the post with the uuid of `d475a62d-b718-41ff-b427-911f71d33755`
 
-## 8. `POST /api/report`
+
+## 7. `POST /api/unvote`
+
+removes vote you made from a post
+
+required? | query parameter | use
+--------- |---------------  | ---
+✔️ | uuid | the uuid of the post to unvote
+
+###### example
+
+`POST /api/unvote?uuid=d475a62d-b718-41ff-b427-911f71d33755`
+
+this will remove your vote (either upvote or downvote) from the post with uuid `d475a62d-b718-41ff-b427-911f71d33755`
+
+
+
+## 9. `POST /api/report`
 
 report a given post for being a dead link
 
