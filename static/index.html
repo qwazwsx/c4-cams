@@ -1,0 +1,69 @@
+<html>
+<head>
+
+	<meta http-equiv="Content-Security-Policy" content="img-src *">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.slim.js"></script>
+	<script src="https://code.jquery.com/jquery-3.2.0.min.js"></script>
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Roboto:300,400" rel="stylesheet">
+	<link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.blue_grey-green.min.css">
+	<script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+	<link href="style.css" rel="stylesheet">
+	
+</head>
+
+<body>
+
+	<div class="header">
+		<div class="title"></div>
+		<div class="nav"></div>
+
+
+	</div>
+	<div class="content">
+		<div class="cam">
+			<p class="location">New York City, NY, USA</p>
+			<p class="location expand">show on map</p>
+			<div style="display:none;" id="map"></div>
+			<div class="score_container">
+					<div class="score">
+						<i class="upvote vote material-icons">arrow_drop_up</i>
+						<p class="score-amount">100</p>
+						<i class="downvote vote material-icons">arrow_drop_down</i>
+					</div>
+			</div>
+			<div class="video">
+				<div class="loader_container">
+					<div id="loader">
+ 						 <div id="shadow"></div>
+ 						 <div id="box"></div>
+					</div>
+				</div>
+				<img src="img/blank.gif" class="img"></img>
+			</div>
+			<div class="info_container">
+				<div class="info">
+					<p class="views">100 views</p>
+					<p class="reports">3% downtime</p>
+				</div>
+			</div>
+
+			<div class="log_container">
+				<div class="log">
+					<p class="log_item center">log (click to see more info)</p>
+				</div>
+
+			</div>
+
+
+			
+		
+		</div>
+	</div>
+
+
+
+<script src="script.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyClOUZuYI534wCMo923PnW_YdCGeqNiX6A&libraries=places&callback=initMap"></script>
+</body>
+</html>

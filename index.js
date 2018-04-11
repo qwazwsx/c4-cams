@@ -65,6 +65,7 @@ MongoClient.connect(mongoUrl, function(err, connection) {
 	db = connection;
 	dbo = db.db("c4-cams");
 	sort();
+	registerApiRoutes();
 });
 
 
@@ -130,6 +131,10 @@ setInterval(function(){
 /* ########################################### */
 /* API */
 
+
+//func containing all API endpoints and their code
+//not properly tabbed on purpose, no need to
+function registerApiRoutes(){
 
 //################################################
 //add camera to list
@@ -240,7 +245,7 @@ app.post('/api/upvote', function (req, res) {
 
 
 app.post('/api/unvote', function (req, res) {
-	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;	
+	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;
 	unvote(req.query.uuid,ip).then(function(data){
 
 		if (data.error !== undefined){
@@ -284,7 +289,7 @@ app.get('/api/random', function (req, res) {
 	
 });
 
-
+}
 
 //use routes
 app.use('/', express.static('static'))
@@ -314,8 +319,12 @@ function random(ip,socketId) {
 			if (urlCheck.error){
 				//console.log('[INFO] url dead '+ cameraObj[0].url);
 
+				//if given socketId is actually connected
 				if (socketId !== undefined){
-					 io.sockets.connected[socketId].emit('fail', {error: 'dead url', code: '0', urlFull: cameraObj[0].url, url: cameraObj[0].url});
+					if (io.sockets.connected[socketId] !== undefined){
+						//emit message directly to user
+						io.sockets.connected[socketId].emit('fail', {error: 'dead url', code: '0', urlFull: cameraObj[0].url, url: cameraObj[0].url});
+					}
 					//io.clients[socketId].send({error: 'dead url', code: '0', url: cameraObj[0].url})
 				}
 
@@ -679,6 +688,7 @@ function unvote(uuid,ip){
 				update('votes', { _id: uuid }, { $pull: {upvoters: ip} } );
 			};
 
+			resolve({message:'OK'})
 		}
 
 
@@ -732,7 +742,7 @@ function load(url,ip){
 
 				checkVote(searchData[0]._id, ip).then(function(vote) {
 
-					searchData.vote = vote;
+					searchData[0].vote = vote;
 
 					resolve(searchData[0]);
 
