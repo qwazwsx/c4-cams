@@ -111,7 +111,9 @@ on the server-end it check if the url is dead or not, if it is dead it generates
 
 **it *could* take up to 15 seconds to return a value in worst-case scenario**
 
-*no query params*
+required? | query parameter | use
+--------- |---------------  | ---
+❌ | id | socket.io client ID to send fail messages to, NOT REQUIRED
 
 ###### example
 
