@@ -72,6 +72,8 @@ body {
 	color: grey;
 	margin-bottom: 5px;
 	cursor:pointer;
+	width: 100px;
+	margin: auto;
 
 }
 
@@ -130,6 +132,19 @@ body {
 
 }
 
+button {
+	z-index: 1;
+}
+.permaBox {
+	z-index:1;
+}
+
+input::selection{
+	background: rgba(28, 241, 66, 0.46);
+	color: white;
+}
+
+
 .log {
 	font-family: 'Courier New';
 	color: #6b7d6b;
@@ -161,7 +176,16 @@ body {
 }
 
 .log .log_elements {
-	    height: calc(330px - 1em);
+	    /*height: calc(330px - 1em);*/
+}
+
+.log .full_logs {
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.log .log_clear {
+	height: calc(330px - 1em);
 }
 
 .log .link {
@@ -186,7 +210,26 @@ body {
 	}
 }
 
+/* this doesnt actually do anything, see style property on the elem */
+button#randomButton  {
+	color: rgb(255, 255, 255) !important;
+	background: rgba(255,255,255,0.1) !important;
+}
 
+
+
+.error {
+	position: absolute;
+    left: 300px;
+    top: 200px;
+    color:white;
+}
+
+.error p {
+	font-size: 14px;
+	font-family: 'Roboto', sans-serif;
+	font-weight:300;
+}
 
 
 
@@ -196,6 +239,18 @@ body {
 	top: -9999px !important;
 	left: -9999px !important;
 }
+
+
+.noselect {
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome and Opera */
+}
+
 
 /* width */
 .log::-webkit-scrollbar {
@@ -223,6 +278,7 @@ body {
     width: 0;
     height: 0;
 }
+
 
 
 /* https://codepen.io/fbrz/pen/mpiFE */

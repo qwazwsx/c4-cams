@@ -175,28 +175,59 @@ app.get('/api/ping', function (req, res) {
 //type: 0 - search by camera object uuid, 1 - search by short url, 2 - search by full url
 //query: what you are seaching for
 app.post('/api/find', function (req, res) {
-	
+
+	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress;
+	var results = 'unset';
+
 	//if query isnt empty
 	if (req.query.query !== undefined){
 	
 		//if searching by uuid
 		if (req.query.type == 0){
-			search('cams',2,{ _id: req.query.query}).then(function(send){res.send(send[0])});
+			search('cams',2,{ _id: req.query.query}).then(function(send){
+				results = send;
+				respond();
+			});
 		}else{
 			//if searching by short url
 			if (req.query.type == 1){
-				search('cams',2,{ url: req.query.query }).then(function(send){res.send(send[0])});
+				search('cams',2,{ url: req.query.query }).then(function(send){
+					results = send;
+					respond();
+				});
 			}else{
 				//if searching by full url
 				if (req.query.type == 2){
-					search('cams',2,{ urlFull: req.query.query }).then(function(send){res.send(send[0])});
+					search('cams',2,{ urlFull: req.query.query }).then(function(send){
+						results = send;
+						respond();
+						});
 				}else{
 					//if type is invalid
 					res.status(400).send({error: 'parameter \'type\' not set correctly', code: 0});
+					results = 'error'
 				}
 			}
 		}
 	
+		function respond(){
+			//if results diddnt error
+			if (results !== 'error' ){
+				//if nothing was found
+				if (results[0] == undefined){
+					res.status(400).send({message: 'no cams found', code: 2});
+				}else{
+					//if results were found
+
+					load(results[0].urlFull,ip).then(function(data) {
+						res.send(data)
+					})
+
+				}
+			}
+		}
+
+
 	}else{
 		//if query is empty
 		res.status(400).send({error: 'parameter \'query\' not set correctly', code: 1});
@@ -335,7 +366,7 @@ function random(ip,socketId) {
 					//if there are 1 or more errors
 					if (data.errors >= 1){
 						//remove that cam from the list
-						remove('camera_list',cameraObj[0]).then(function(err,res) {
+						remove('camera_list',{url: cameraObj[0].url}).then(function(err,res) {
 							console.log('[INFO] removed cam from list '+cameraObj[0].url)
 						});
 					}
@@ -516,7 +547,6 @@ function sort(){
 			
 			
 			//console.log(sortedPosts);
-			
 			
 			
 		});	
@@ -704,7 +734,6 @@ function unvote(uuid,ip){
 //ip: ip of requester
 function load(url,ip){
 
-	
 	
 	return new Promise(function(resolve,reject){
 	
