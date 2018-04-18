@@ -23,8 +23,9 @@ var RateLimit = require('express-rate-limit');			//get ratelimiter for express
 var app = express();									//get express server
 var http = require('http');								//http for checking if URLS are working
 var { URL } = require('url');							//parse URLS
-var server = require('http').Server(app);			 				//server for socket.io
+var server = require('http').Server(app);			 	//server for socket.io
 var io = require('socket.io')(server);					//socket.io
+var isOnline = require('is-online');					//check if server is connected to the internet
 var views = [];											//tracks users for view counts
 var reports = [];										//tracks users for reports
 var topPosts = []										//list of sorted posts, updates every 10 min
@@ -32,6 +33,9 @@ var port = process.env.PORT || 3000;        			// set our port (defaults to 8081
 var db;													//database connection
 var dbo;
 var time = 0;
+//incremented on every dead url, if it gets too high check if the server has a connection
+var offlineCheck = 0;
+
 
 var socketConnections = [];
 
@@ -241,18 +245,21 @@ app.post('/api/find', function (req, res) {
 //uuid
 //errors
 //0 - you have already reported this camera
-app.post('/api/report', function (req, res) {
-	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;	
-	report(req.query.uuid,ip).then(function(send){
-		if (send.error !== undefined){
-			res.status(400).send(send);
-		}else{
-			res.send(send);
-		}
-		
-	});
 
-});
+//not really needed anymore
+
+// app.post('/api/report', function (req, res) {
+// 	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;	
+// 	report(req.query.uuid,ip).then(function(send){
+// 		if (send.error !== undefined){
+// 			res.status(400).send(send);
+// 		}else{
+// 			res.send(send);
+// 		}
+		
+// 	});
+
+// });
 
 
 
@@ -421,10 +428,36 @@ function checkUrl(url){
 		});
 	req.on('error', function(err) {
 		//on error return error flag
+		offlineCheck++;
+		if (offlineCheck >= 15){
+			isOnline().then(online => {
+				console.log(online);
+				if (!online){
+					//server has no connection
+					process.exit(1);
+				}else{
+					offlineCheck = 0;
+				}
+				//=> true
+			});
+		}
 	 	resolve({ error: true, message: err });
 		});
 	req.setTimeout(3000, function() {
 		//timeout and return error flag
+		offlineCheck++;
+		if (offlineCheck >= 15){
+			isOnline().then(online => {
+				console.log(online);
+				if (!online){
+					//server has no connection
+					process.exit(1);
+				}else{
+					offlineCheck = 0;
+				}
+				//=> true
+			});
+		}
 		req.abort();
 		resolve({ error: true, message: 'timeout' });
 	});

@@ -6,6 +6,8 @@ var fullLogging = false; //false = hide logs after new cam, true = never hide lo
 var logLength = 0;
 var IPlocation;
 
+var apiFails = 0;
+
 console.log('to see debug output enable verbose logging in devtools')
 
 
@@ -15,7 +17,7 @@ $('.location').css('opacity', 0);
 $('.info_container').css('opacity', 0);
 $('.random')[0].disabled = true;
 $('.share')[0].disabled = true;
-
+$('.error_container').hide();
 
 
 //connect to socket.io server
@@ -138,7 +140,14 @@ function loadRandom() {
 		error: function(data) {
 			console.debug('GET api/random failed');
 			console.debug(data);
-			loadRandom();
+			apiFails++;
+			if (apiFails >= 5){
+				console.debug('GET api/random failed 5 times, cancel');
+				$('.cam').fadeOut();
+				$('.error_container').fadeIn();
+			}else{
+				setTimeout(function(){loadRandom()},1000);
+			}
 		}
 	});
 };
@@ -221,6 +230,8 @@ $('.cam .video img')[0].onload = function(a) {
 		$('.info_container').animate({ opacity: 1 });
 		$('.random')[0].disabled = false;
 		$('.share')[0].disabled = false;
+		$('.random').animate({ opacity: 1 });
+		$('#randomButton i.material-icons').removeClass('spin');
 
 		//add to log
 		logLength++;
@@ -241,7 +252,7 @@ $('.cam .video img')[0].onload = function(a) {
 //listener for image error
 $('.cam .video img')[0].onerror = function(a) {
 	console.debug('ERROR - image sent error')
-	
+
 	$('.loader_container').show();
 	$('.cam .video img')[0].src = 'img/blank.gif';
 	if (!imageLoaded){
@@ -268,7 +279,9 @@ $('.location.expand')[0].onclick = function(a) {
 //on random button click
 $('.random')[0].onclick = function() {
 
+	$('#randomButton i.material-icons').addClass('spin');
 	$('.random')[0].disabled = true;
+	$('.random').animate({ opacity: 0.5 });
 	loadRandom();
 
 }
@@ -277,10 +290,17 @@ $('.random')[0].onclick = function() {
 //on share click
 $('.share')[0].onclick = function() {
 
-	$('#permaBoxInner')[0].value = "https://qwazwsx.herokuapp.com/c4-cams/perma#" + currentCamera._id;
-	$('.permaBox').slideToggle();
-	$('#permaBoxInner')[0].select();
+	if ($('.permaBox').is(":visible")){
+		$('.permaBox').slideUp();
+	}else{
 
+		$('#permaBoxInner')[0].value = "https://qwazwsx.herokuapp.com/c4-cams/perma#" + currentCamera._id;
+
+		$('.permaBox').slideToggle();
+		copyTextToClipboard("https://qwazwsx.herokuapp.com/c4-cams/perma#" + currentCamera._id)
+		toast('permalink copied to clipboard')
+
+	}
 }
 
 
@@ -289,11 +309,13 @@ $('.full_logs')[0].onclick = function() {
 	if (fullLogging){
 		$('.full_logs')[0].innerHTML = "show full logs";
 		fullLogging = false;
+		$('.log .link').fadeOut();
 		$('.log .log_elements').fadeOut();
 		$('.log .log_elements').last().fadeIn();
 	}else{
 		$('.full_logs')[0].innerHTML = "hide full logs";
 		fullLogging = true;
+		$('.log .link').fadeIn();
 		$('.log .log_elements').fadeIn();
 	}
 }
@@ -318,7 +340,37 @@ function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
 }
 
+function toast(text){
+	var data = {message: text};
+	$('#toast')[0].MaterialSnackbar.showSnackbar(data);
+}
 
+//https://codepen.io/Mestika/pen/NxLzNq
+function copyTextToClipboard(text) {
+  var textArea = document.createElement("textarea");
+
+  textArea.style.position = 'fixed';
+  textArea.style.top = 0;
+  textArea.style.left = 0;
+  textArea.style.width = '2em';
+  textArea.style.height = '2em';
+  textArea.style.padding = 0;
+  textArea.style.border = 'none';
+  textArea.style.outline = 'none';
+  textArea.style.boxShadow = 'none';
+  textArea.style.background = 'transparent';
+  textArea.value = text;
+  document.body.appendChild(textArea);
+  textArea.select();
+  try {
+    var successful = document.execCommand('copy');
+    var msg = successful ? 'successful' : 'unsuccessful';
+    console.log('Copying text command was ' + msg);
+  } catch (err) {
+    console.log('Oops, unable to copy');
+  }
+  document.body.removeChild(textArea);
+}
 
 
 //google maps stuff

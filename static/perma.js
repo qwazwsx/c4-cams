@@ -6,15 +6,29 @@ var fullLogging = false; //false = hide logs after new cam, true = never hide lo
 var logLength = 0;
 var IPlocation;
 
-console.log('to see debug output enable verbose logging in devtools')
 
+
+var embed = false;
+var error = false
 
 //hide elements
 $('.score_container').css('opacity', 0);
 $('.location').css('opacity', 0);
 $('.info_container').css('opacity', 0);
 $('.share')[0].disabled = true;
-$('.loader_container .error').hide();
+$('.error_container').hide();
+
+//if in an iframe
+if (window != top){
+	//hide top
+	$('.header').hide();
+	$('body').css('overflow','hidden');
+	$('body').css('background','none transparent');
+	embed = true;
+}else{
+	console.log('to see debug output enable verbose logging in devtools')
+}
+
 
 
 //load a cam
@@ -78,9 +92,11 @@ function load() {
 			console.debug('image loading failed');
 			console.debug(data);
 
-			$('#loader').hide();
-			$('.error').show();
-			$('.loader_container').fadeIn();
+			$('.cam').fadeOut();
+			$('.error_container').fadeIn();
+
+			window.location.hash = 'error';
+			error = true;
 
 
 		}
@@ -94,20 +110,23 @@ window.onload = load();
 
 //manual refresh for images
 function refresh() {
-	refreshFlag = true;
-	
-	var tempUrl = new URL(currentCamera.urlFull);
-	if (tempUrl.searchParams.has('c4-counter')){
-		tempUrl.searchParams.set('c4COUNTER', Math.round((new Date()).getTime() / 1000));
-		
-	}else{
-		tempUrl.searchParams.append('c4COUNTER', Math.round((new Date()).getTime() / 1000));
-	}
-	$('.cam .video img')[0].src = tempUrl.href;
+	if (!error){
 
-	setTimeout(function(){
-		refresh();
-	},5000);
+		refreshFlag = true;
+		
+		var tempUrl = new URL(currentCamera.urlFull);
+		if (tempUrl.searchParams.has('c4-counter')){
+			tempUrl.searchParams.set('c4COUNTER', Math.round((new Date()).getTime() / 1000));
+			
+		}else{
+			tempUrl.searchParams.append('c4COUNTER', Math.round((new Date()).getTime() / 1000));
+		}
+		$('.cam .video img')[0].src = tempUrl.href;
+
+		setTimeout(function(){
+			refresh();
+		},5000);
+	}
 }
 
 
@@ -162,6 +181,12 @@ $('.score .downvote')[0].onclick = function() {
 $('.cam .video img')[0].onload = function(a) {
 	//if its the first time
 	if (!imageLoaded){
+
+		if (embed){
+			//if in iframe signal that cam has loaded
+			window.location.hash = "#loaded"
+		};
+
 		//show UI
 		$('.score_container').animate({ opacity: 1 });
 		$('.location').animate({ opacity: 1 });
@@ -184,6 +209,17 @@ $('.cam .video img')[0].onerror = function(a) {
 	console.debug('ERROR - image sent error')
 	$('.loader_container').show();
 	$('.cam .video img')[0].src = 'img/blank.gif';
+
+	$('.error_container .error p')[0].innerHTML = "Camera was found but the link is dead. The camera may have gone offline or moved to a different IP. (see <a href=\"https://redd.it/10ikfz\">dynamic IP addresses</a>)";
+	
+	window.location.hash = '#error';
+	error = true;
+
+	currentCamera.urlFull = 'img/blank.gif'
+
+	$('.cam').fadeOut();
+	$('.error_container').fadeIn();
+
 }
 
 
@@ -206,10 +242,17 @@ $('.location.expand')[0].onclick = function(a) {
 //on share click
 $('.share')[0].onclick = function() {
 
-	$('#permaBoxInner')[0].value = "https://qwazwsx.herokuapp.com/c4-cams/perma#" + currentCamera._id;
-	$('.permaBox').slideToggle();
-	$('#permaBoxInner')[0].select();
+	if ($('.permaBox').is(":visible")){
+		$('.permaBox').slideUp();
+	}else{
 
+		$('#permaBoxInner')[0].value = "https://qwazwsx.herokuapp.com/c4-cams/perma#" + currentCamera._id;
+
+		$('.permaBox').slideToggle();
+		copyTextToClipboard("https://qwazwsx.herokuapp.com/c4-cams/perma#" + currentCamera._id)
+		toast('permalink copied to clipboard')
+
+	}
 }
 
 
@@ -236,7 +279,38 @@ function getRandomInt(min, max) {
 }
 
 
+function toast(text){
+	var data = {message: text};
+	$('#toast')[0].MaterialSnackbar.showSnackbar(data);
+}
 
+
+//https://codepen.io/Mestika/pen/NxLzNq
+function copyTextToClipboard(text) {
+  var textArea = document.createElement("textarea");
+
+  textArea.style.position = 'fixed';
+  textArea.style.top = 0;
+  textArea.style.left = 0;
+  textArea.style.width = '2em';
+  textArea.style.height = '2em';
+  textArea.style.padding = 0;
+  textArea.style.border = 'none';
+  textArea.style.outline = 'none';
+  textArea.style.boxShadow = 'none';
+  textArea.style.background = 'transparent';
+  textArea.value = text;
+  document.body.appendChild(textArea);
+  textArea.select();
+  try {
+    var successful = document.execCommand('copy');
+    var msg = successful ? 'successful' : 'unsuccessful';
+    console.log('Copying text command was ' + msg);
+  } catch (err) {
+    console.log('Oops, unable to copy');
+  }
+  document.body.removeChild(textArea);
+}
 
 //google maps stuff
 //dont even bother reading from this point on

@@ -2,13 +2,13 @@
 <head>
 
 	<meta http-equiv="Content-Security-Policy" content="img-src *">
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.slim.js"></script>
-	<script src="https://code.jquery.com/jquery-3.2.0.min.js"></script>
+	<script src="js/socket.io.slim.js"></script>
+	<script src="js/jquery-3.2.0.min.js"></script>
 	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 	<link href="https://fonts.googleapis.com/css?family=Roboto:300,400" rel="stylesheet">
-	<link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.blue_grey-green.min.css">
-	<script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
-	<link href="style.css" rel="stylesheet">
+	<link rel="stylesheet" href="css/material.blue_grey-green.min.css">
+	<script defer src="js/material.min.js"></script>
+	<link href="css/style.css" rel="stylesheet">
 	
 </head>
 
@@ -20,9 +20,21 @@
 
 
 	</div>
+
 	<div class="content">
+
+		<div class="error_container">
+			<div class="error">
+				<i class="material-icons">error</i>
+				<p>Camera not found. Either the camera has been removed as it has gone offline (see <a href="https://redd.it/10ikfz">dynamic IP addresses</a>) or your link is broken.</p>
+				<!-- <p> OOPSIE WOOPSIE!! Uwu We made a fucky wucky!! A wittle fucko boingo! The code monkeys at our headquarters are working VEWY HAWD to fix this! </p> -->
+			</div>
+		</div>
+
+
+
 		<div class="cam">
-			<p class="location">New York City, NY, USA</p>
+			<p class="location">unable to get location</p>
 			<p class="location expand">show on map</p>
 			<div style="display:none;" id="map"></div>
 			<div class="score_container">
@@ -38,10 +50,6 @@
  						 <div id="shadow"></div>
  						 <div id="box"></div>
 					</div>
-					<div class="error">
-						<i class="material-icons">error</i>
-						<p>asd</p>
-					</div>
 				</div>
 				<img src="img/blank.gif" class="img"></img>
 			</div>
@@ -54,7 +62,7 @@
 					</button>
 
 					<div class="permaBox mdl-textfield mdl-js-textfield" style="width:600px; color: grey; display:none;">
-					  <input class="mdl-textfield__input" type="text" id="permaBoxInner">
+					  <input class="mdl-textfield__input" type="text" readonly="readonly" id="permaBoxInner">
 					</div>
 
 				</div>
@@ -64,7 +72,10 @@
 		</div>
 	</div>
 
-
+	<div id="toast" class="mdl-js-snackbar mdl-snackbar">
+		<div class="mdl-snackbar__text"></div>
+		<button class="mdl-snackbar__action" type="button"></button>
+	</div>
 
 <script src="perma.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyClOUZuYI534wCMo923PnW_YdCGeqNiX6A&libraries=places&callback=initMap"></script>
