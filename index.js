@@ -14,7 +14,7 @@ https://github.com/qwazwsx/c4-cams
 /* REQUIREMENTS AND VARS */
 var MongoClient = require('mongodb').MongoClient;		//mongoDB client for databases
 //var mongoUrl = "mongodb://localhost:27017/";			//location of mongoDB server
-var mongoUrl = process.env.mongoUrl || "mongodb://localhost:27017/";	//location of mongoDB server
+var mongoUrl = process.env.MONGODB_URI || "mongodb://localhost:27017/";	//location of mongoDB server
 var uuidv4 = require('uuid/v4');						//generates uuid's for documents
 var decay = require('decay');							//get decay for sorting by up&down votes
 var wilsonScore = decay.wilsonScore();					//use wilson type of scoring (reddit comments "best" sorting)
