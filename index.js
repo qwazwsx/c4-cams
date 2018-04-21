@@ -31,7 +31,7 @@ var views = [];											//tracks users for view counts
 var reports = [];										//tracks users for reports
 var topPosts = []										//list of sorted posts, updates every 10 min
 var port = process.env.PORT || 3000;        			// set our port (defaults to 8081 if env var isnt set)
-var dbName = ''
+var dbName = process.env.dbName;
 var db;													//database connection
 var dbo;
 var time = 0;
