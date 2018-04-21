@@ -1,0 +1,67 @@
+<html>
+<head>
+
+	<meta http-equiv="Content-Security-Policy" content="img-src *">
+	<script src="/c4-cams/js/socket.io.slim.js"></script>
+	<script src="/c4-cams/js/jquery-3.2.0.min.js"></script>
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Roboto:300,400" rel="stylesheet">
+	<link rel="stylesheet" href="/c4-cams/css/material.blue_grey-green.min.css">
+	<script defer src="/c4-cams/js/material.min.js"></script>
+	<link href="/c4-cams/css/style.css" rel="stylesheet">
+	
+</head>
+
+<body>
+
+	<div class="header">
+		<div class="site_title">
+			<h1> C4-CAMS </h1>
+		</div>
+		<div class="nav">
+			<a href="/c4-cams/" class="item"> RANDOM </a>
+			<p class="divider"> | </p>
+			<a href="/c4-cams/top" class="item selected"> TOP </a>
+			<p class="divider"> | </p>
+			<a href="/c4-cams/info" class="item"> INFO </a>
+		</div>
+	</div>
+	
+
+	<div class="content">
+
+		<div class="error_container">
+			<div class="error">
+				<i class="material-icons">error</i>
+				<p>Camera not found. Either the camera has been removed as it has gone offline (see <a href="https://redd.it/10ikfz">dynamic IP addresses</a>) or your link is broken.</p>
+				<!-- <p> OOPSIE WOOPSIE!! Uwu We made a fucky wucky!! A wittle fucko boingo! The code monkeys at our headquarters are working VEWY HAWD to fix this! </p> -->
+			</div>
+		</div>
+
+		<h3 class="title">Top Rated Cameras</h3>
+		<h5 class="subtitle">page 1</h5>
+
+		<div class="nav_container">
+			<button id="backButton" class="back mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" style="color: rgb(255, 255, 255) !important;background: rgba(255,255,255,0.1) !important;">
+				<i class="material-icons">navigate_before</i> Previous Page
+			</button>
+			<button id="nextButton" class="next mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" style="color: rgb(255, 255, 255) !important;background: rgba(255,255,255,0.1) !important;">
+				Next Page <i class="material-icons">navigate_next</i> 
+			</button>
+		</div>
+
+		<div class="posts">
+		</div>
+
+		<div class="nav_container">
+			<button id="backButton" class="back mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" style="color: rgb(255, 255, 255) !important;background: rgba(255,255,255,0.1) !important;">
+				<i class="material-icons">navigate_before</i> Previous Page
+			</button>
+			<button id="nextButton" class="next mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" style="color: rgb(255, 255, 255) !important;background: rgba(255,255,255,0.1) !important;">
+				Next Page <i class="material-icons">navigate_next</i> 
+			</button>
+		</div>
+
+<script src="/c4-cams/js/top.js"></script>
+</body>
+</html>

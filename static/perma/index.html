@@ -1,0 +1,89 @@
+<html>
+<head>
+
+	<meta http-equiv="Content-Security-Policy" content="img-src *">
+	<script src="/c4-cams/js/socket.io.slim.js"></script>
+	<script src="/c4-cams/js/jquery-3.2.0.min.js"></script>
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Roboto:300,400" rel="stylesheet">
+	<link rel="stylesheet" href="/c4-cams/css/material.blue_grey-green.min.css">
+	<script defer src="/c4-cams/js/material.min.js"></script>
+	<link href="/c4-cams/css/style.css" rel="stylesheet">
+	
+</head>
+
+<body>
+
+	<div class="header">
+		<div class="site_title">
+			<h1> C4-CAMS </h1>
+		</div>
+		<div class="nav">
+			<a href="/c4-cams/" class="item"> RANDOM </a>
+			<p class="divider"> | </p>
+			<a href="/c4-cams/top" class="item"> TOP </a>
+			<p class="divider"> | </p>
+			<a href="/c4-cams/info" class="item"> INFO </a>
+		</div>
+	</div>
+
+	<div class="content">
+
+		<div class="error_container">
+			<div class="error">
+				<i class="material-icons">error</i>
+				<p>Camera not found. Either the camera has been removed as it has gone offline (see <a href="https://redd.it/10ikfz">dynamic IP addresses</a>) or your link is broken.</p>
+				<!-- <p> OOPSIE WOOPSIE!! Uwu We made a fucky wucky!! A wittle fucko boingo! The code monkeys at our headquarters are working VEWY HAWD to fix this! </p> -->
+			</div>
+		</div>
+
+
+
+		<div class="cam">
+			<p class="location"></p>
+			<p class="location expand">show on map</p>
+			<div style="display:none;" id="map"></div>
+			<div class="score_container">
+					<div class="score">
+						<i class="upvote vote material-icons noselect">arrow_drop_up</i>
+						<p class="score-amount">100</p>
+						<i class="downvote vote material-icons noselect">arrow_drop_down</i>
+					</div>
+			</div>
+			<div class="video">
+				<div class="loader_container">
+					<div id="loader">
+ 						 <div id="shadow"></div>
+ 						 <div id="box"></div>
+					</div>
+				</div>
+				<img src="/c4-cams/img/blank.gif" class="img"></img>
+			</div>
+			<div class="info_container">
+				<div class="info">
+					<p class="views">100 views</p>
+					<p class="reports">3% downtime</p>
+					<button id="shareButton" class="share mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" style="color: rgb(255, 255, 255) !important;background: rgba(255,255,255,0.1) !important;">
+						<i class="material-icons">share</i> Permalink 
+					</button>
+
+					<div class="permaBox mdl-textfield mdl-js-textfield" style="width:600px; color: grey; display:none;">
+					  <input class="mdl-textfield__input" type="text" readonly="readonly" id="permaBoxInner">
+					</div>
+
+				</div>
+			</div>
+			
+		
+		</div>
+	</div>
+
+	<div id="toast" class="mdl-js-snackbar mdl-snackbar">
+		<div class="mdl-snackbar__text"></div>
+		<button class="mdl-snackbar__action" type="button"></button>
+	</div>
+
+<script src="/c4-cams/js/perma.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyClOUZuYI534wCMo923PnW_YdCGeqNiX6A&libraries=places&callback=initMap"></script>
+</body>
+</html>

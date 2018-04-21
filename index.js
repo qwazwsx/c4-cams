@@ -30,6 +30,7 @@ var views = [];											//tracks users for view counts
 var reports = [];										//tracks users for reports
 var topPosts = []										//list of sorted posts, updates every 10 min
 var port = process.env.PORT || 3000;        			// set our port (defaults to 8081 if env var isnt set)
+var dbName = ''
 var db;													//database connection
 var dbo;
 var time = 0;
@@ -39,8 +40,9 @@ var offlineCheck = 0;
 
 var socketConnections = [];
 
-server.listen(8080, function(){
-  console.log('listening on *:80');
+//setup port
+server.listen(port, function(){
+  console.log('listening on *:' + port);
 });
 
 
@@ -65,9 +67,15 @@ io.on('connection', function(socket){
 
 //connect to database
 MongoClient.connect(mongoUrl, function(err, connection) {
+		
+	if (err){
+		console.log('error connecting to db');
+		console.log(err)
+	}
+
 	//set database object to global var
 	db = connection;
-	dbo = db.db("c4-cams");
+	dbo = db.db(dbName);
 	sort();
 	registerApiRoutes();
 });
@@ -108,7 +116,7 @@ var apiLimiter = new RateLimit({
   max: 120,
   delayMs: 0 // disabled
 });
-app.use('/api/', apiLimiter);
+app.use('/c4-cams/api/', apiLimiter);
 
 var apiLimiterHard = new RateLimit({
   windowMs: 10*60*1000, // 1 minute
@@ -116,7 +124,7 @@ var apiLimiterHard = new RateLimit({
   delayMs: 0, // disabled
   skipFailedRequests: true
 });
-app.use('/api/add', apiLimiterHard);
+app.use('/c4-cams/api/add', apiLimiterHard);
 
 
 
@@ -142,7 +150,7 @@ function registerApiRoutes(){
 
 //################################################
 //add camera to list
-app.post('/api/add', function (req, res) {
+app.post('/c4-cams/api/add', function (req, res) {
 	addCamera(req.query.url).then(function(data){
 		if (data.error !== undefined){
 			//if url isnt valid or already exists
@@ -159,7 +167,7 @@ app.post('/api/add', function (req, res) {
 
 //################################################
 //sends ordered list of posts
-app.get('/api/top', function (req, res) {
+app.get('/c4-cams/api/top', function (req, res) {
 	//return cached array
 	res.send(topPosts);
 });
@@ -168,7 +176,7 @@ app.get('/api/top', function (req, res) {
 //################################################
 //responds pong
 //delay: ms to delay response
-app.get('/api/ping', function (req, res) {
+app.get('/c4-cams/api/ping', function (req, res) {
 	setTimeout(function(){res.send('pong')},req.query.delay);
 });
 
@@ -178,7 +186,7 @@ app.get('/api/ping', function (req, res) {
 //query params
 //type: 0 - search by camera object uuid, 1 - search by short url, 2 - search by full url
 //query: what you are seaching for
-app.post('/api/find', function (req, res) {
+app.post('/c4-cams/api/find', function (req, res) {
 
 	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress;
 	var results = 'unset';
@@ -269,7 +277,7 @@ app.post('/api/find', function (req, res) {
 //errors
 //0 - uuid doesnt exist
 //1 - user already upvoted
-app.post('/api/upvote', function (req, res) {
+app.post('/c4-cams/api/upvote', function (req, res) {
 	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;	
 	upvote(req.query.uuid,ip).then(function(data){
 
@@ -282,7 +290,7 @@ app.post('/api/upvote', function (req, res) {
 });
 
 
-app.post('/api/unvote', function (req, res) {
+app.post('/c4-cams/api/unvote', function (req, res) {
 	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;
 	unvote(req.query.uuid,ip).then(function(data){
 
@@ -303,7 +311,7 @@ app.post('/api/unvote', function (req, res) {
 //errors
 //0 - uuid doesnt exist
 //1 - user already upvoted
-app.post('/api/downvote', function (req, res) {
+app.post('/c4-cams/api/downvote', function (req, res) {
 	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;	
 	downvote(req.query.uuid,ip).then(function(data){
 		if (data.error !== undefined){
@@ -318,7 +326,7 @@ app.post('/api/downvote', function (req, res) {
 
 //################################################
 //returns a random camera object
-app.get('/api/random', function (req, res) {
+app.get('/c4-cams/api/random', function (req, res) {
 	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress;
 	
 	random(ip,req.query.id).then(function(data) {
@@ -330,7 +338,12 @@ app.get('/api/random', function (req, res) {
 }
 
 //use routes
-app.use('/', express.static('static'))
+app.use('/c4-cams/', express.static('static/random'));
+app.use('/c4-cams/perma', express.static('static/perma'));
+app.use('/c4-cams/random', express.static('static/random'));
+app.use('/c4-cams/top', express.static('static/top'));
+app.use('/c4-cams', express.static('static'));
+
 
 
 
