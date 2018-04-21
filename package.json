@@ -1,0 +1,32 @@
+{
+  "name": "c4-cams",
+  "version": "1.0.0",
+  "description": "API documentation:",
+  "main": "index.js",
+  "dependencies": {
+    "decay": "^1.0.12",
+    "express-rate-limit": "^2.11.0",
+    "express": "^4.16.3",
+    "http": "^0.0.0",
+    "is-online": "^7.0.0",
+    "mongodb": "^3.0.7",
+    "socket.io": "^2.1.0",
+    "sort-array": "^2.0.0",
+    "url": "^0.11.0",
+    "uuid": "^3.2.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qwazwsx/c4-cams.git"
+  },
+  "author": "qwazwsx/howl",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/qwazwsx/c4-cams/issues"
+  },
+  "homepage": "https://github.com/qwazwsx/c4-cams#readme"
+}
