@@ -31,7 +31,7 @@ var views = [];											//tracks users for view counts
 var reports = [];										//tracks users for reports
 var topPosts = []										//list of sorted posts, updates every 10 min
 var port = process.env.PORT || 3000;        			// set our port (defaults to 8081 if env var isnt set)
-var dbName = process.env.dbName;
+var dbName = process.env.dbName || "c4-cams";
 var db;													//database connection
 var dbo;
 var time = 0;
@@ -445,7 +445,7 @@ function checkUrl(url){
 		offlineCheck++;
 		if (offlineCheck >= 15){
 			isOnline().then(online => {
-				console.log(online);
+
 				if (!online){
 					//server has no connection
 					process.exit(1);
@@ -462,7 +462,7 @@ function checkUrl(url){
 		offlineCheck++;
 		if (offlineCheck >= 15){
 			isOnline().then(online => {
-				console.log(online);
+
 				if (!online){
 					//server has no connection
 					process.exit(1);
@@ -560,7 +560,6 @@ function sort(){
 			
 			//loop over all cams and score them
 			for (var i = 0; i < data.length; i++){
-				
 				
 				//calc score with decay
 				score = wilsonScore(data[i].upvotes, data[i].downvotes);
@@ -815,10 +814,12 @@ function load(url,ip){
 					
 				};
 				
-
+				//check if IP has voted before
 				checkVote(searchData[0]._id, ip).then(function(vote) {
 
+					//add that result to data
 					searchData[0].vote = vote;
+
 
 					resolve(searchData[0]);
 

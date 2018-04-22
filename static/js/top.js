@@ -36,7 +36,7 @@ function load(){
 
 					$('.posts').append('<div class="loader"><div class="mdl-spinner mdl-js-spinner is-active"></div></div>');
 					componentHandler.upgradeDom()
-					$('.posts').append('<iframe style="display:none" allowtransparency="true" src="/c4-cams/perma/#'+data[i]._id+'"></iframe>');
+					$('.posts').append('<iframe class="' + data[i]._id + '" style="display:none" allowtransparency="true" src="/c4-cams/perma/#'+data[i]._id+'"></iframe>');
 					i++;
 					if(i < start + 10){
 						addCam();
@@ -66,7 +66,8 @@ function load(){
 load();
 
 
-//error check
+//event checker
+//this is a shitty way of doing it I know
 setInterval(function() {
 
 	//loop through all iframes
@@ -82,11 +83,9 @@ setInterval(function() {
 			//make it smaller
 			$('iframe').eq(ii).css('height','200px');
 			$('iframe').eq(ii).slideDown();
-
-
-
-
 		}
+
+
 
 
 		//if iframe is loaded
@@ -99,13 +98,12 @@ setInterval(function() {
 			$('.posts .loader').eq(ii).hide();
 			$('iframe').eq(ii).slideDown();
 
-			
-
 		}
+
 
 	}
 
-},1000)
+},300)
 
 
 
@@ -129,3 +127,20 @@ $('.back')[0].onclick = function() {
 
 $('.back')[1].onclick = $('.back')[0].onclick;
 
+
+
+
+//when iframe sends map change message update iframe height
+window.addEventListener("message", function(event) {
+
+	if (event.data == "map_opened"){
+		$('.' + event.source.currentCamera._id).css('height','1100px');
+	}
+	if (event.data == "map_closed"){
+		$('.' + event.source.currentCamera._id).css('height','690px');
+	}
+
+
+	
+
+}, false);

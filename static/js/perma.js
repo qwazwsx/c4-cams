@@ -69,11 +69,28 @@ function load() {
 			var urlinfo = new URL(data.urlFull);
 			$.ajax({
 				type: 'GET',
-				url: 'http://ip-api.com/json/'+urlinfo.hostname,
+				url: 'https://extreme-ip-lookup.com/json/'+urlinfo.hostname,
 				success: function(data){
 
 					IPlocation = data;
-					$('.location')[0].innerHTML = data.city + ', ' + data.regionName + ', ' + data.country;
+					$('.location')[0].innerHTML = "";
+
+					if (data.ipType !== "Residential"){
+						$('.location')[0].innerHTML += "\"" + data.businessName + "\" <br> ";
+					}
+
+					if (data.city !== ""){
+						$('.location')[0].innerHTML += data.city + ", ";
+					}
+
+					if (data.region !== ""){
+						$('.location')[0].innerHTML += data.region + ", ";
+					}
+
+					if (data.country !== ""){
+						$('.location')[0].innerHTML += data.country;
+					}
+
 					startMap();
 				},
 				error: function() {
@@ -232,9 +249,12 @@ $('.cam .video img')[0].onerror = function(a) {
 $('.location.expand')[0].onclick = function(a) {
 
 	if ($('#map').is(":visible")){
-		$('.location.expand')[0].innerHTML = 'hide map'
-	}else{
 		$('.location.expand')[0].innerHTML = 'show on map'
+		window.parent.postMessage('map_closed', '*')
+	}else{
+		$('.location.expand')[0].innerHTML = 'hide map'
+		window.parent.postMessage('map_opened', '*')
+
 	}
 
 	$('#map').slideToggle();

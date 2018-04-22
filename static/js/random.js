@@ -111,11 +111,27 @@ function loadRandom() {
 			var urlinfo = new URL(data.urlFull);
 			$.ajax({
 				type: 'GET',
-				url: 'http://ip-api.com/json/'+urlinfo.hostname,
+				url: 'https://extreme-ip-lookup.com/json/'+urlinfo.hostname,
 				success: function(data){
-					console.debug(data);
-					IPlocation = data;
-					$('.location')[0].innerHTML = data.city + ', ' + data.regionName + ', ' + data.country;
+
+					$('.location')[0].innerHTML = "";
+
+					if (data.ipType !== "Residential"){
+						$('.location')[0].innerHTML += "\"" + data.businessName + "\" <br> ";
+					}
+
+					if (data.city !== ""){
+						$('.location')[0].innerHTML += data.city + ", ";
+					}
+
+					if (data.region !== ""){
+						$('.location')[0].innerHTML += data.region + ", ";
+					}
+
+					if (data.country !== ""){
+						$('.location')[0].innerHTML += data.country;
+					}
+
 					startMap();
 				}
 			})
@@ -223,7 +239,7 @@ $('.score .downvote')[0].onclick = function() {
 //listener for image load
 $('.cam .video img')[0].onload = function(a) {
 	//if its the first time
-	if (!imageLoaded && $('.cam .video img')[0].src !== "/c4-cams/img/blank.gif"){
+	if (!imageLoaded && currentCamera !== undefined){
 		//show UI
 		$('.score_container').animate({ opacity: 1 });
 		$('.location').animate({ opacity: 1 });
@@ -235,7 +251,6 @@ $('.cam .video img')[0].onload = function(a) {
 
 		//add to log
 		logLength++;
-		console.log($('.cam .video img')[0].src)
 		$('.log .log_elements').last().append('<p onclick="$(\'.log .link-'+logLength+'\').fadeToggle();" class="log_item">connected to camera</p> <span style="display:none;" class=" link link-'+logLength+'">'+currentCamera.urlFull+'</span>')
 		//scrollSmoothToBottom($('.log'));
 	}
