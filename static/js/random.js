@@ -114,6 +114,9 @@ function loadRandom() {
 				url: 'https://extreme-ip-lookup.com/json/'+urlinfo.hostname,
 				success: function(data){
 
+					IPlocation = data;
+
+
 					$('.location')[0].innerHTML = "";
 
 					if (data.ipType !== "Residential"){

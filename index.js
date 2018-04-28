@@ -255,20 +255,19 @@ app.post('/c4-cams/api/find', function (req, res) {
 //errors
 //0 - you have already reported this camera
 
-//not really needed anymore
 
-// app.post('/api/report', function (req, res) {
-// 	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;	
-// 	report(req.query.uuid,ip).then(function(send){
-// 		if (send.error !== undefined){
-// 			res.status(400).send(send);
-// 		}else{
-// 			res.send(send);
-// 		}
+app.post('/c4-cams/api/report', function (req, res) {
+	var ip = req.headers["X-Forwarded-For"] || req.headers["x-forwarded-for"] || req.client.remoteAddress ;	
+	report(req.query.uuid,ip,true).then(function(send){
+		if (send.error !== undefined){
+			res.status(400).send(send);
+		}else{
+			res.send(send);
+		}
 		
-// 	});
+	});
 
-// });
+});
 
 
 
@@ -389,6 +388,7 @@ function random(ip,socketId) {
 						//remove that cam from the list
 						remove('camera_list',{url: cameraObj[0].url}).then(function(err,res) {
 							console.log('[INFO] removed cam from list '+cameraObj[0].url)
+							console.log(socketId)
 						});
 					}
 				})
@@ -606,7 +606,7 @@ function sort(){
 //report a post as dead
 //uuid: uuid of cam
 //ip: ip of requester
-function report(uuid,ip){
+function report(uuid,ip,outside){
 	
 	return new Promise(function(resolve,reject){
 
@@ -627,7 +627,14 @@ function report(uuid,ip){
 			
 			//if ip hasnt already reported 
 			if (reports[uuid].indexOf(ip) == -1){
-				update('cams', { _id:uuid }, { $inc: { reports: 1 } } );
+
+				//if outside report flag is set only report one fith the amount
+				if (outside == true){
+					update('cams', { _id:uuid }, { $inc: { reports: 0.2 } } );
+				}else{
+					update('cams', { _id:uuid }, { $inc: { reports: 1 } } );
+				}
+
 				reports[uuid].push(ip);
 				resolve({message:'OK'});
 			}else{

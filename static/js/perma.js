@@ -238,6 +238,17 @@ $('.cam .video img')[0].onerror = function(a) {
 
 	currentCamera.urlFull = '/c4-cams/img/blank.gif'
 
+	$.ajax({
+		type: 'POST',
+		url: '/c4-cams/api/report?uuid=' + currentCamera._id,
+		success: function(data){
+
+			console.log('reported camera')
+
+		}
+	})
+
+
 	$('.cam').fadeOut();
 	$('.error_container').fadeIn();
 
