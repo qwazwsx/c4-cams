@@ -1,5 +1,7 @@
 # c4-cams
 
+note: this is slightly outdated, it is still usable, but some into on camera objects may not be accelerate 
+
 API documentation: 
 
 **note: you are limited to 120 API calls per minute**
