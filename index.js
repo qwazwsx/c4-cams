@@ -14,7 +14,7 @@ https://github.com/qwazwsx/c4-cams
 /* REQUIREMENTS AND VARS */
 var MongoClient = require('mongodb').MongoClient;		//mongoDB client for databases
 //var mongoUrl = "mongodb://localhost:27017/";			//location of mongoDB server
-var mongoUrl = process.env.MONGODB_URI || "mongodb://localhost:27017/";	//location of mongoDB server
+var mongoUrl = process.env.MONGODB_URI || "mongodb://localhost:27017";	//location of mongoDB server
 var uuidv4 = require('uuid/v4');						//generates uuid's for documents
 var decay = require('decay');							//get decay for sorting by up&down votes
 var wilsonScore = decay.wilsonScore();					//use wilson type of scoring (reddit comments "best" sorting)
@@ -68,15 +68,19 @@ io.on('connection', function(socket){
 
 //connect to database
 MongoClient.connect(mongoUrl, function(err, connection) {
-		
+
+	console.log('[INFO] CONNECTING TO DB')
 	if (err){
 		console.log('error connecting to db');
-		console.log(err)
-	}
+		throw err;
+		}
 
 	//set database object to global var
 	db = connection;
 	dbo = db.db(dbName);
+
+
+
 	sort();
 	registerApiRoutes();
 });
@@ -383,8 +387,8 @@ function random(ip,socketId) {
 				//add error flag to doc
 				update('camera_list',cameraObj[0],{ $inc: { errors: 1 } } ).then(function(data) {
 					
-					//if there are 1 or more errors
-					if (data.errors >= 1){
+					//if there are 2 or more errors
+					if (data.errors >= 2){
 						//remove that cam from the list
 						remove('camera_list',{url: cameraObj[0].url}).then(function(err,res) {
 							console.log('[INFO] removed cam from list '+cameraObj[0].url)
@@ -553,6 +557,7 @@ function sort(){
 	return new Promise(function(resolve,reject){
 
 		//get all cams
+		console.log
 		dbo.collection('cams').find({}).toArray(function(err, data) {
 			if (err) throw err;
 			
@@ -625,17 +630,33 @@ function report(uuid,ip,outside){
 				reports[uuid] = [];
 			};
 			
-			//if ip hasnt already reported 
+			//if the ip hasnt already reported this post 
 			if (reports[uuid].indexOf(ip) == -1){
 
-				//if outside report flag is set only report one fith the amount
-				if (outside == true){
-					update('cams', { _id:uuid }, { $inc: { reports: 0.2 } } );
+				//if there are 2 or more errors
+				console.log(data[0].reports)
+				if (data[0].reports >= 2){
+					//remove that cam from the list
+					remove('camera_list',{ _id:uuid }).then(function(err,res) {
+						console.log('[INFO] removed cam from list '+data[0].url)
+					});
 				}else{
-					update('cams', { _id:uuid }, { $inc: { reports: 1 } } );
+					//if there are less than 2 reports
+
+					//if outside report flag is set only report one fith the amount
+					if (outside == true){
+						update('cams', { _id:uuid }, { $inc: { reports: 0.2 } } );
+						console.log('[INFO] external report')
+					}else{
+						//if report comes internally report with more weight
+						update('cams', { _id:uuid }, { $inc: { reports: 1 } } );
+					}
+				
 				}
 
+				//keep track of reports
 				reports[uuid].push(ip);
+				//return
 				resolve({message:'OK'});
 			}else{
 				resolve({error: 'you have already reported this camera', code: 0});

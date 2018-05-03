@@ -83,7 +83,7 @@ function loadRandom() {
 			if (data.reports == 0) {
 				$('.info .reports')[0].innerHTML = '0% downtime';
 			} else {
-				$('.info .reports')[0].innerHTML = Math.round((data.reports/data.views)*100) + '% downtime';
+				$('.info .reports')[0].innerHTML = Math.round(((data.reports / 0.2) / data.views) * 100) + '% downtime';
 			}
 			
 			//set image src
@@ -120,19 +120,19 @@ function loadRandom() {
 					$('.location')[0].innerHTML = "";
 
 					if (data.ipType !== "Residential"){
-						$('.location')[0].innerHTML += "\"" + data.businessName + "\" <br> ";
+						$('.location')[0].innerHTML += "\"" + data.businessName.replace('<','').replace('>','') + "\" <br> ";
 					}
 
 					if (data.city !== ""){
-						$('.location')[0].innerHTML += data.city + ", ";
+						$('.location')[0].innerHTML += data.city.replace('<','').replace('>','') + ", ";
 					}
 
 					if (data.region !== ""){
-						$('.location')[0].innerHTML += data.region + ", ";
+						$('.location')[0].innerHTML += data.region.replace('<','').replace('>','') + ", ";
 					}
 
 					if (data.country !== ""){
-						$('.location')[0].innerHTML += data.country;
+						$('.location')[0].innerHTML += data.country.replace('<','').replace('>','');
 					}
 
 					startMap();
@@ -257,6 +257,9 @@ $('.cam .video img')[0].onload = function(a) {
 		$('.log .log_elements').last().append('<p onclick="$(\'.log .link-'+logLength+'\').fadeToggle();" class="log_item">connected to camera</p> <span style="display:none;" class=" link link-'+logLength+'">'+currentCamera.urlFull+'</span>')
 		//scrollSmoothToBottom($('.log'));
 	}
+	
+	$('#permaBoxInner')[0].value = "https://qwazwsx.herokuapp.com/c4-cams/perma#" + currentCamera._id;
+
 
 	imageLoaded = true;
 	

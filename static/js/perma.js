@@ -46,7 +46,7 @@ function load() {
 			if (data.reports == 0) {
 				$('.info .reports')[0].innerHTML = '0% downtime';
 			} else {
-				$('.info .reports')[0].innerHTML = Math.round((data.reports/data.views)*100) + '% downtime';
+				$('.info .reports')[0].innerHTML = Math.round(((data.reports / 0.2) / data.views) * 100) + '% downtime';
 			}
 			
 			//set image src
@@ -76,19 +76,19 @@ function load() {
 					$('.location')[0].innerHTML = "";
 
 					if (data.ipType !== "Residential"){
-						$('.location')[0].innerHTML += "\"" + data.businessName + "\" <br> ";
+						$('.location')[0].innerHTML += "\"" + data.businessName.replace('<','').replace('>','') + "\" <br> ";
 					}
 
 					if (data.city !== ""){
-						$('.location')[0].innerHTML += data.city + ", ";
+						$('.location')[0].innerHTML += data.city.replace('<','').replace('>','') + ", ";
 					}
 
 					if (data.region !== ""){
-						$('.location')[0].innerHTML += data.region + ", ";
+						$('.location')[0].innerHTML += data.region.replace('<','').replace('>','') + ", ";
 					}
 
 					if (data.country !== ""){
-						$('.location')[0].innerHTML += data.country;
+						$('.location')[0].innerHTML += data.country.replace('<','').replace('>','');
 					}
 
 					startMap();

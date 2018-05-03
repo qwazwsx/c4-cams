@@ -14,6 +14,21 @@ body {
 }
 
 
+.content.info {
+	width:50%;
+	margin:auto;
+}
+
+.content.info p, .content.info h3 {
+	color:white;
+	text-align: center;
+}
+
+.info p {
+	margin-bottom: 0px;
+}
+
+
 .cam {
 	width: 60%;
 	margin-left: 20%;
