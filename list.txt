@@ -1,4 +1,3 @@
-
 http://95.229.228.109:81/cgi-bin/faststream.jpg?stream=half&amp;fps=15&amp;rand=COUNTER
 http://213.240.185.79:50001/cgi-bin/faststream.jpg?stream=half&amp;fps=15&amp;rand=COUNTER
 http://196.218.116.139:80/cgi-bin/viewer/video.jpg
