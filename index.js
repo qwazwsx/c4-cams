@@ -153,14 +153,6 @@ setInterval(function(){
 //not properly tabbed on purpose, no need to
 function registerApiRoutes(){
 
-app.get('/', function(req,res,next){
-	if (req.header('host').indexOf('qwazwsx.xyz') == -1){
-		res.redirect('http://c4-cams.qwazwsx.xyz'+req.path);
-	}else{
-		next();
-	}
-
-})
 	
 	
 	
