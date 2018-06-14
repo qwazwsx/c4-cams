@@ -281,10 +281,10 @@ $('.share')[0].onclick = function() {
 		$('.permaBox').slideUp();
 	}else{
 
-		$('#permaBoxInner')[0].value = "http://qwazwsx.xyz/perma#" + currentCamera._id;
+		$('#permaBoxInner')[0].value = "http://c4-cams.qwazwsx.xyz/perma#" + currentCamera._id;
 
 		$('.permaBox').slideToggle();
-		copyTextToClipboard("http://qwazwsx.xyz/perma#" + currentCamera._id)
+		copyTextToClipboard("http://c4-cams.qwazwsx.xyz/perma#" + currentCamera._id)
 		toast('permalink copied to clipboard')
 
 	}
