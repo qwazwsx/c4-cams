@@ -339,6 +339,11 @@ app.get('/c4-cams/api/random', function (req, res) {
 	
 });
 
+app.get('/', function (req,res){
+	res.redirect('http://c4-cams.qwazwsx.xyz/c4-cams');
+})
+	
+	
 }
 
 //use routes
