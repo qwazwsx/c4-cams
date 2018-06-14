@@ -352,6 +352,7 @@ app.use('/', express.static('static/random'));
 app.use('/perma', express.static('static/perma'));
 app.use('/random', express.static('static/random'));
 app.use('/top', express.static('static/top'));
+app.use('/info', express.static('static/info'));
 
 
 
