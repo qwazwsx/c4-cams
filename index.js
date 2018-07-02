@@ -27,11 +27,13 @@ var { URL } = require('url');							//parse URLS
 var server = require('http').Server(app);			 	//server for socket.io
 var io = require('socket.io')(server);					//socket.io
 var isOnline = require('is-online');					//check if server is connected to the internet
+var inspector = require('inspector');					//dev tools inspector
 var views = [];											//tracks users for view counts
 var reports = [];										//tracks users for reports
 var topPosts = []										//list of sorted posts, updates every 10 min
+var cache = [];
 var port = process.env.PORT || 3000;        			// set our port (defaults to 8081 if env var isnt set)
-var dbName = process.env.dbName || "c4-cams";
+var dbName = process.env.dbName || "heroku_m7sf9mbv";
 var db;													//database connection
 var dbo;
 var time = 0;
@@ -104,6 +106,8 @@ process.on("SIGINT", function () {
   //graceful shutdown
   db.close().then(function() {
   	console.log('got shutdown signal, closing database connection');
+  	//close inspector/devtools
+  	inspector.close();
   	process.exit();
   });
   
@@ -218,7 +222,7 @@ app.post('/c4-cams/api/find', function (req, res) {
 					search('cams',2,{ urlFull: req.query.query }).then(function(send){
 						results = send;
 						respond();
-						});
+					});
 				}else{
 					//if type is invalid
 					res.status(400).send({error: 'parameter \'type\' not set correctly', code: 0});
@@ -235,10 +239,10 @@ app.post('/c4-cams/api/find', function (req, res) {
 					res.status(400).send({message: 'no cams found', code: 2});
 				}else{
 					//if results were found
-
-					load(results[0].urlFull,ip).then(function(data) {
+					//account for view and add vote data
+					view(results,ip).then(function(data) {
 						res.send(data)
-					})
+					});
 
 				}
 			}
@@ -634,11 +638,13 @@ function report(uuid,ip,outside){
 			if (reports[uuid].indexOf(ip) == -1){
 
 				//if there are 2 or more errors
-				console.log(data[0].reports)
 				if (data[0].reports >= 2){
 					//remove that cam from the list
 					remove('camera_list',{ _id:uuid }).then(function(err,res) {
-						console.log('[INFO] removed cam from list '+data[0].url)
+						console.log('[INFO] removed cam from camera_list '+data[0].url)
+					});
+					remove('cams',{ _id:uuid }).then(function(err,res) {
+						console.log('[INFO] removed cam from cams '+data[0].url)
 					});
 				}else{
 					//if there are less than 2 reports
@@ -802,12 +808,61 @@ function unvote(uuid,ip){
 
 }
 
+//add view to camera and add voting data
+//searchData: data from cams (see load() func)
+//ip: ip of requester
+function view(searchData,ip){
+
+	return new Promise(function(resolve,reject){
+
+		//if the camera exists in the database add view count
+		//console.log('[INFO] PAGE EXISTS');			
+		
+		//if viewers array for this cam doesnt exist make it
+		if (views[searchData[0]._id] == undefined){
+			views[searchData[0]._id] = [];
+		};
+		
+		//if ip havent already viewed push ip to array and count view
+		if (views[searchData[0]._id].indexOf(ip) == -1){
+			views[searchData[0]._id].push(ip)
+			
+			//add view to the cam
+			update('cams', { _id: searchData[0]._id }, { $inc: { views: 1 } })
+			
+			
+		};
+		
+		//check if IP has voted before
+		checkVote(searchData[0]._id, ip).then(function(vote) {
+
+			//add that result to data
+			searchData[0].vote = vote;
+
+
+			resolve(searchData[0]);
+
+		});
+	
+
+
+	});
+
+
+
+
+}
+
 
 //to be called on page load
 //url: full url
 //ip: ip of requester
-function load(url,ip){
+function load(url,ip,permaData){
 
+	//if load() is being called from the /api/find endpoint
+	if (url == undefined && ip == undefined && permaData !== undefined){
+
+	}
 	
 	return new Promise(function(resolve,reject){
 	
@@ -824,35 +879,10 @@ function load(url,ip){
 					});
 				})
 			}else{
-				//if the camera exists in the database add view count
-				//console.log('[INFO] PAGE EXISTS');			
-			
-				//if viewers array for this cam doesnt exist make it
-				if (views[searchData[0]._id] == undefined){
-					views[searchData[0]._id] = [];
-				};
-				
-				//if ip havent already viewed push ip to array and count view
-				if (views[searchData[0]._id].indexOf(ip) == -1){
-					views[searchData[0]._id].push(ip)
-					
-					//add view to the cam
-					update('cams', { _id: searchData[0]._id }, { $inc: { views: 1 } })
-					
-					
-				};
-				
-				//check if IP has voted before
-				checkVote(searchData[0]._id, ip).then(function(vote) {
-
-					//add that result to data
-					searchData[0].vote = vote;
-
-
-					resolve(searchData[0]);
-
-				});
-
+				//change view data and check vote database if the IP has voted before
+				view(searchData,ip).then(function(searchData) {
+					resolve(searchData);
+				})
 				
 			};
 			
@@ -938,7 +968,7 @@ function createDoc(url){
 };
 
 	
-	
+	 
 //check if camera is already in the database
 //collection: collection to search in
 //mode: 0 = search by url. 1 = search by uuid. 2 = input your own query object
@@ -964,14 +994,58 @@ function search(collection,mode,input){
 			};
 			
 		};
-		//perform the search
-		dbo.collection(collection).find(query).toArray(function(err, result) {
-			if (err) reject(err);
-			
-			//return result
-			resolve(result);
-			
-	  });
+
+		var inCache;
+
+		//loop through cache
+		for(var i = 0; i < cache.length; i++){
+
+			//if the data we are searching for is in the cache
+			if (cache[i].db == collection && (cache[i].data[0]._id == query._id || cache[i].data[0].url == query.url || cache[i].data[0].urlFull == query.urlFull)){
+
+				//set flag
+				inCache = true;
+				
+				//but the cache is more than 5min old
+				if ((Date.now() - cache[i].timestamp) >= 5*60*1000 ){
+					//ignore the fact it was in the cache
+					inCache = false;
+				}
+
+				break;
+			}
+
+		}
+
+
+		//if the value isnt in the cache
+		if (!inCache){
+			//perform the search
+			dbo.collection(collection).find(query).toArray(function(err, result) {
+				if (err) reject(err);
+				
+
+				//remove old value from cache
+				//loop through all values in the array, setting obj to the selected obj
+				cache.filter(function( obj ) {
+					//if the id of obj is the same as db
+					if (obj.db == collection && obj.data[0]._id == result._id){
+						cache[cache.indexOf(obj)] = [];
+					}
+				});
+
+				//push new value to cache array
+				cache.push({db: collection, data: result, timestamp: Date.now() });
+
+
+				//return result
+				resolve(result);
+				
+		  	});
+		}else{
+			//if the value is in the cache
+			resolve(cache[i].data);
+		}
 
 	});
 }
