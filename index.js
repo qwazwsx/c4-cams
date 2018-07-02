@@ -157,6 +157,9 @@ setInterval(function(){
 //not properly tabbed on purpose, no need to
 function registerApiRoutes(){
 
+	
+	
+	
 //################################################
 //add camera to list
 app.post('/c4-cams/api/add', function (req, res) {
@@ -342,7 +345,7 @@ app.get('/c4-cams/api/random', function (req, res) {
 	});
 	
 });
-
+	
 }
 
 //use routes
@@ -352,6 +355,11 @@ app.use('/c4-cams/random', express.static('static/random'));
 app.use('/c4-cams/top', express.static('static/top'));
 app.use('/c4-cams', express.static('static'));
 
+app.use('/', express.static('static/random'));
+app.use('/perma', express.static('static/perma'));
+app.use('/random', express.static('static/random'));
+app.use('/top', express.static('static/top'));
+app.use('/info', express.static('static/info'));
 
 
 

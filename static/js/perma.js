@@ -281,10 +281,10 @@ $('.share')[0].onclick = function() {
 		$('.permaBox').slideUp();
 	}else{
 
-		$('#permaBoxInner')[0].value = "https://qwazwsx.herokuapp.com/c4-cams/perma#" + currentCamera._id;
+		$('#permaBoxInner')[0].value = "http://c4-cams.qwazwsx.xyz/perma#" + currentCamera._id;
 
 		$('.permaBox').slideToggle();
-		copyTextToClipboard("https://qwazwsx.herokuapp.com/c4-cams/perma#" + currentCamera._id)
+		copyTextToClipboard("http://c4-cams.qwazwsx.xyz/perma#" + currentCamera._id)
 		toast('permalink copied to clipboard')
 
 	}

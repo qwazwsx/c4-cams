@@ -1,6 +1,6 @@
 # c4-cams
 
-note: this is slightly outdated, it is still usable, but some into on camera objects may not be accelerate 
+note: this is slightly outdated, it is still usable, but some into on camera objects may not be accurate 
 
 API documentation: 
 
