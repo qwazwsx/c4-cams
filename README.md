@@ -19,3 +19,12 @@ features:
 * view top cameras of all time
 
 * more to come!
+
+
+warning:
+
+dont look into this repo
+
+the code in the repo is in desperate need of refactoring
+
+seriously dont even look at the code
