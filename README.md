@@ -27,4 +27,4 @@ dont look into this repo
 
 the code in the repo is in desperate need of refactoring
 
-seriously dont even look at the code
+seriously dont even look at the code, it works, but it isnt pretty or efficient
